@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>平台服务费费率设置</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+        .set-item {overflow: hidden;}
+        .set-item .tit {padding: 10px;background: #f9f9f9;}
+        .set-item .set-main {width: 400px;height: 250px;border: 1px solid #ddd;margin: 20px auto;}
+        .set-item .sendfee-set-main {height: 210px;}
+        .set-item .btn-wrap {text-align: center;position: relative;top: 23px;left: 126px;}
+        .form-layer .layui-form-label {width: 130px;}
+        .form-layer .layui-input-block {margin-left: 130px;}
+        .layui-btn-primary:hover {border-color: #ccc;}
+        .cuiTime {position: relative;}
+        .btn-wrap{display: none;}
+        .layui-card-body{position: relative;}
+        .set-item{position: absolute;left: 50%;top:50%;margin-left: -200px;margin-top: -110px;}
+    </style>
+</head>
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body" style="height: 100%">
+                        <div class="set-item">                            
+                            <div class="set-main sendfee-set-main">
+                                <p class="tit">平台服务费费率设置</p>
+                                <div class="layui-fluid form-layer layui-form layui-form" style="margin-top: 20px;">
+                                    <div class="layui-row">
+                                        <div class="layui-col-md12">
+                                            <label class="layui-form-label"><i class="star">*</i>平台服务费费率设置:</label>
+                                            <div class="layui-input-block">
+                                                <input placeholder="%" type="text" autocomplete="off"
+                                                    class="layui-input" id="serviceFee">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="btn-wrap isAdmin">
+                                        <a class="layui-btn layui-btn-normal" style="padding:0 30px;margin-left: 20px" onclick="sendFeeConfirmBtn()">确定</a>
+                                        <!-- <a class="layui-btn layui-btn-primary" onclick="sendFeeCancelBtn()">关闭</a> -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    $(function () {       
+        $(".layui-card").css("height",$(window).height()-30)
+        getTimeStatus();
+    });
+
+    //获取全部时间信息、状态
+    function getTimeStatus() {
+        $.ajax({
+            url: port + '/v1/company/get',
+            xhrFields: {
+                withCredentials: true
+            },
+            type: 'get',
+            async: false,
+            data: {
+                cId: localStorage.getItem('unitId'), //单位id
+            },
+            success: function (e) {
+                var data = e.data;
+                console.log('状态', e);
+                //平台服务费费率设置
+               // $("#sendFee").val(data.deliveryFee)
+            
+              
+            }
+        });
+    }
+
+    //平台服务费费率设置
+    function sendFeeConfirmBtn() {
+        if ($('#serviceFee').val() == '') {
+            layer.msg('请输入平台服务费费率');
+            return;
+        }
+        if (!(/^\d+(\.\d+)?$/.test($('#serviceFee').val()))) {
+            layer.msg('平台服务费费率必须是大于0的数字');
+            return;
+        }
+        layer.open({
+            type: 1,
+            title: '提示',
+            area: ['300px', '200px'],
+            btn: ['确定', '取消'],
+            yes: function (index, layero) {
+                $.ajax({
+                    url: port + '/v1/company/saveServiceFee',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'get',
+                    data: {
+                        cId: localStorage.getItem('unitId'),
+                        serviceFee : $('#serviceFee').val(), //配送费用
+                    },
+                    success: function (e) {
+                        console.log('配送费用', e);
+                        if (e.status == 200) {
+                            layer.msg('操作成功');
+                            layer.close(index);
+                            // setTimeout(function () {
+                            //     location.reload();
+                            // }, 3000);
+                        }
+                    }
+                });
+            },
+            btnAlign: 'c',
+            content: '<div style="text-align: center;margin-top: 45px;">确定提交?</div>'
+        });
+
+
+    }
+
+    // 催单时间设置确定
+    function cuiConfirmBtn() {
+        if ($('#cuiTime').val() == '') {
+            layer.msg('请输入催单时间');
+            return;
+        }
+        if (!zzsReg.test($('#cuiTime').val())) {
+            layer.msg('催单时间必须是正整数');
+            return;
+        }
+        layer.open({
+            type: 1,
+            title: '提示',
+            area: ['300px', '200px'],
+            btn: ['确定', '取消'],
+            yes: function (index, layero) {
+                $.ajax({
+                    url: port + '/v1/commonTime/saveReminderTime',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cId: localStorage.getItem('unitId'),
+                        reminderTime: $('#cuiTime').val(), //催单时间
+                        reminderTimeUseStatus: $('#cuiStatus').val() //是否启用
+                    },
+                    success: function (e) {
+                        console.log('催单提交', e);
+                        if (e.status == 200) {
+                            layer.msg('操作成功');
+                            layer.close(index);
+                            setTimeout(function () {
+                                location.reload();
+                            }, 3000);
+                        }
+                    }
+                });
+            },
+            btnAlign: 'c',
+            content: '<div style="text-align: center;margin-top: 45px;">确定提交?</div>'
+        });
+
+
+    }
+    // 催单时间设置取消
+    function cuiCancelBtn() {
+        layer.open({
+            type: 1,
+            title: '提示',
+            area: ['300px', '200px'],
+            btn: ['确定', '取消'],
+            yes: function (index, layero) {
+                $.ajax({
+                    url: port + '/v1/commonTime/saveReminderTime',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cId: localStorage.getItem('unitId'),
+                        reminderTime: $('#cuiTime').val(), //催单时间
+                        reminderTimeUseStatus: 0 //是否启用
+                    },
+                    success: function (e) {
+                        console.log('催单取消', e);
+                        if (e.status == 200) {
+                            layer.msg('操作成功');
+                            layer.close(index);
+                            setTimeout(function () {
+                                location.reload();
+                            }, 3000);
+                        }
+                    }
+                });
+            },
+            btnAlign: 'c',
+            content: '<div style="text-align: center;margin-top: 45px;">确定关闭?</div>'
+        });
+    }
+
+
+</script>
+
+</html>

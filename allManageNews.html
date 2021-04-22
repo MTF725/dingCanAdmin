@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>新闻公告</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+         #toolbar .toolbar-btn{display: none;}
+         .gap-line{color: #e6e6e6;}
+         .file-btn{background:#27AAE1;color:white;width: 70px;padding:0;position: relative;float: left;margin-right: 15px;}
+         .file-btn input{width: 100%;height: 100%;position: absolute;top: 0;right: 0;opacity: 0;}
+         .file-name{float: left;margin-top: 7px;}
+         .ke-edit body{padding:0;}
+         .news-type .layui-form-select dl{z-index: 99999;}
+         .w-e-text{overflow-y: auto!important;}
+    </style>
+</head>
+
+<body>
+    
+
+
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline isSuperAdmin">
+                                <label class="form-label">单位名称</label>
+                                <select id="unitName" lay-filter="unitName">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">标题</label>
+                                <input type="text" autocomplete="off" class="layui-input" id="title">
+                            </div>
+                            <div class="layui-input-inline timeDate" hidden>
+                                <label class="form-label">发布日期</label>
+                                <input type="text" autocomplete="off" readonly class="layui-input" id="publishStartEndDate">
+                            </div> 
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>
+                        </form>
+                        <div id="toolbar" class="isAdmin">
+                            <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                            <a href="###" id="importBtn" class="toolbar-btn"  onclick="importBtn()">导入</a>
+                            <a href="###" id="exportBtn" class="toolbar-btn"  onclick="exportBtn()">导出</a>
+                        </div>
+                        <table id="table"></table>                                       
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="lib/wangEditor/release/wangEditor.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+
+    $(function () {
+
+        // 发布日期起始日期
+        layui.laydate.render({
+            elem: '#publishStartEndDate',
+            range: true,
+            type: "date",
+            format: 'yyyy-MM-dd',
+        });
+
+        unitList($('#unitName'), 'id'); //单位名称下拉           
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/news/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-90, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) {
+                console.log("新闻公告",res)
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'cName',
+                align: 'center',
+                title: '单位名称',
+            },{
+                field: 'title',
+                align: 'center',
+                title: '标题'
+            },{
+                field: 'kindName',
+                align: 'center',
+                title: '公告类型'
+            }, {
+                field: 'publishTime',
+                align: 'center',
+                title: '发布日期'
+            },  {
+                field: 'createTime',
+                align: 'center',
+                title: '创建日期',
+            }, {
+                field: 'operName',
+                align: 'center',
+                title: '创建人'
+            } , {
+                field: 'name9',
+                align: 'center',
+                title: '操作',
+                events: operateEvents,
+                formatter: function (value, row, index) {
+                    var result =
+                        "<a href='javascript:;' class='info' style='color:#129CD6;'>详情</a>";
+                    return result;
+                }
+            }],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('商家信息', data);
+                if (data.rows==0) {
+                    setTreeTableHeight(130);
+                }
+            },
+            //加载失败时执行
+            onLoadError: function () {
+                
+            },
+            onClickRow: function (row, $element) {}
+        });
+
+    });
+   
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            cId: setUnitId('#unitName'), //单位名称id
+            startDate: $('#publishStartEndDate').val().substring(0,10), //开始时间
+            endDate: $('#publishStartEndDate').val().substring(13), //结束时间       
+            keyword: $('#title').val(), //关键字                    
+        };
+        return temp;
+    }
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+        console.log($('#publishStartEndDate').val())
+    }
+
+    // 富文本编辑器
+var editor = new window.wangEditor('#editor');
+// 自定义菜单配置
+editor.customConfig.menus = [
+    'head',  // 标题
+    'bold',  // 粗体
+    'fontSize',  // 字号
+    'fontName',  // 字体
+    'italic',  // 斜体
+    'underline',  // 下划线
+    'strikeThrough',  // 删除线
+    'foreColor',  // 文字颜色
+    'backColor',  // 背景颜色
+    'link',  // 插入链接
+    'justify',  // 对齐方式
+    'emoticon',  // 表情
+    'image',  // 插入图片
+    'undo',  // 撤销
+    'redo'  // 重复
+];
+ // 表情面板可以有多个 tab ，因此要配置成一个数组。数组每个元素代表一个 tab 的配置
+    editor.customConfig.emotions = [
+        {
+            // tab 的标题
+            title: '默认',
+            // type -> 'emoji' / 'image'
+            type: 'image',
+            // content -> 数组
+            content: [
+                {"alt":"[微笑]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/e3/2018new_weixioa02_org.png"},{"alt":"[可爱]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/09/2018new_keai_org.png"},{"alt":"[太开心]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/1e/2018new_taikaixin_org.png"},{"alt":"[鼓掌]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/6e/2018new_guzhang_thumb.png"},{"alt":"[嘻嘻]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/33/2018new_xixi_thumb.png"},{"alt":"[哈哈]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/8f/2018new_haha_thumb.png"},{"alt":"[笑cry]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/4a/2018new_xiaoku_thumb.png"},{"alt":"[挤眼]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/43/2018new_jiyan_org.png"},{"alt":"[馋嘴]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/fa/2018new_chanzui_org.png"},{"alt":"[黑线]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/a3/2018new_heixian_thumb.png"},{"alt":"[汗]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/28/2018new_han_org.png"},{"alt":"[挖鼻]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/9a/2018new_wabi_thumb.png"},{"alt":"[哼]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/7c/2018new_heng_thumb.png"},{"alt":"[怒]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/f6/2018new_nu_thumb.png"},{"alt":"[委屈]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/a5/2018new_weiqu_thumb.png"},{"alt":"[可怜]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/96/2018new_kelian_org.png"},{"alt":"[失望]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/aa/2018new_shiwang_thumb.png"},{"alt":"[悲伤]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/ee/2018new_beishang_org.png"},{"alt":"[泪]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/6e/2018new_leimu_org.png"},{"alt":"[允悲]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/83/2018new_kuxiao_org.png"},{"alt":"[害羞]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/c1/2018new_haixiu_org.png"},{"alt":"[污]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/10/2018new_wu_thumb.png"},{"alt":"[爱你]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/f6/2018new_aini_org.png"},{"alt":"[亲亲]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/2c/2018new_qinqin_thumb.png"},{"alt":"[色]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/9d/2018new_huaxin_org.png"},{"alt":"[憧憬]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/c9/2018new_chongjing_org.png"},{"alt":"[舔屏]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/3e/2018new_tianping_thumb.png"},{"alt":"[坏笑]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/4d/2018new_huaixiao_org.png"},{"alt":"[阴险]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/9e/2018new_yinxian_org.png"},{"alt":"[笑而不语]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/2d/2018new_xiaoerbuyu_org.png"},{"alt":"[偷笑]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/71/2018new_touxiao_org.png"},{"alt":"[酷]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/c4/2018new_ku_org.png"},{"alt":"[并不简单]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/aa/2018new_bingbujiandan_thumb.png"},{"alt":"[思考]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/30/2018new_sikao_org.png"},{"alt":"[疑问]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/b8/2018new_ningwen_org.png"},{"alt":"[费解]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/2a/2018new_wenhao_thumb.png"},{"alt":"[晕]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/07/2018new_yun_thumb.png"},{"alt":"[衰]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/a2/2018new_shuai_thumb.png"},{"alt":"[骷髅]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/a1/2018new_kulou_thumb.png"},{"alt":"[嘘]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/b0/2018new_xu_org.png"},{"alt":"[闭嘴]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/62/2018new_bizui_org.png"},{"alt":"[傻眼]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/dd/2018new_shayan_org.png"},{"alt":"[吃惊]","src":"http://img.t.sinajs.cn/t4/appstyle/expression/ext/normal/49/2018new_chijing_org.png"}
+            ]
+        },
+        
+    ]
+// 配置服务器端地址
+editor.customConfig.uploadFileName = 'files'; //设置文件上传的参数名称
+editor.customConfig.uploadImgServer = port+'/v1/news/batchUpload';
+editor.customConfig.uploadImgMaxSize = 10 * 1024 * 1024; // 将图片大小限制为 3M
+editor.customConfig.uploadImgMaxLength = 5;
+editor.customConfig.withCredentials = true;
+editor.customConfig.customAlert = function (info) {
+    // 自定义提示形式，info 是需要提示的内容
+    layer.msg(info);
+};
+
+editor.customConfig.uploadImgHooks = {
+    success: function (xhr, editor, result) {
+      console.log('success',xhr, editor, result);
+    },
+    fail: function (xhr, editor, result) {
+      console.log('fail',xhr, editor, result);
+        // 图片上传并返回结果，但图片插入错误时触发
+        // xhr 是 XMLHttpRequst 对象，editor 是编辑器对象，result 是服务器端返回的结果
+    },
+    error: function (xhr, editor) {
+      console.log('error',xhr, editor);
+        // 图片上传出错时触发
+        // xhr 是 XMLHttpRequst 对象，editor 是编辑器对象
+    },
+    // 自定义图片前缀在这写
+    customInsert: function (insertImg, result, editor) {
+         for (var i = 0; i < result.data.length; i++) {
+            result.data[i]=port+result.data[i];
+            insertImg(result.data[i]);
+        }
+       
+    }
+
+};
+    
+   
+    // 添加
+    function addBtn() {
+        layer.open({
+            type: 1,
+            title: '添加',
+            area: ['700px', '525px'],
+            btn: ['确定', '取消'],
+            btnAlign: 'c',
+            success: function (layero, index) {    
+                    
+                    editor.create();
+
+                newsTypeList(layero.find('#newsType'));//赋值公告类型下拉
+
+                //初始化日期
+                layui.laydate.render({
+                    elem: '#publishDate',
+                    type: "date",
+                    format: 'yyyy-MM-dd',
+                    min:0,//最小日期为当天
+                });
+                layui.form.render();
+
+
+            },
+            yes: function (index, layero) {
+                var newsTitle = layero.find('#newsTitle').val(); //标题  
+                var newsType  = layero.find('#newsType').val(); //类别  
+                var publishDate  = layero.find('#publishDate').val(); //发布日期  
+                var editorContent=editor.txt.html();//富文本编辑器内容
+
+                if (newsTitle=='') {
+                    layer.msg('请输入标题');
+                    return;
+                }
+                if (newsType=='') {
+                    layer.msg('请选择公告类型');
+                    return;
+                }
+                $.ajax({
+                    url: port + '/v1/news/insert',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cId:localStorage.getItem('unitId'),//登录人id
+                        operName:localStorage.getItem('dcUserName'),//登录人姓名
+                       content:editorContent,//内容
+                       kindId:newsType,//类别
+                       operId:localStorage.getItem('dcUserId'),//创建人id
+                       publishDate:publishDate,//发布日期
+                       title:newsTitle,//标题
+                    },
+                    success: function (e) {
+                        console.log('添加', e);
+                        if (e.status == 200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已添加');
+                            layer.close(index);
+                        } else {
+                            layer.msg(e.msg);
+                        }
+                    }
+                });
+            },
+            content: '<div class="layui-fluid form-layer layui-form">' +
+                        '<div class="layui-row">' +
+                            '<div class="layui-col-md6">' +
+                                '<label class="layui-form-label"><i class="star">*</i>标题:</label>' +
+                                '<div class="layui-input-block">' +
+                                    '<input type="text" autocomplete="off" class="layui-input" id="newsTitle">' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="layui-col-md6">' +
+                                '<label class="layui-form-label"><i class="star">*</i>公告类型:</label>' +
+                                '<div class="layui-input-block news-type">' +
+                                    '<select id="newsType" lay-filter="newsType">' +
+                                        '<option value=""></option>' +                                
+                                    '</select>' +
+                                '</div>' +
+                            '</div>' +                                            
+                            '<div class="layui-col-md6">' +
+                                '<label class="layui-form-label">发布日期:</label>' +
+                                '<div class="layui-input-block">' +
+                                    '<input type="text" readonly autocomplete="off" class="layui-input" id="publishDate">' +
+                                '</div>' +
+                            '</div>' +                   
+                            '<div class="layui-col-md12">' +
+                                '<label class="layui-form-label">内容:</label>' +
+                                '<div class="layui-input-block layui-filebox clearfix">' +
+                                    '<div id="editor"></div>'+
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div> '
+        });
+    }
+
+    // 修改
+    function editBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        console.log('修改', item[0]);
+        if (item.length == 1) {
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: ['700px', '525px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+                    editor.create();
+                    editor.txt.html(item[0].content);
+
+                newsTypeList(layero.find('#newsType'));//赋值公告类型下拉
+                $('#newsType option').each(function(i,a){
+                    console.log($(a))
+                    if ($(a).val()==item[0].kindId) {
+                        $(a).attr('selected',true);
+                        layui.form.render();
+                    }
+                })
+
+                //初始化日期
+                layui.laydate.render({
+                    elem: '#publishDate',
+                    type: "date",
+                    format: 'yyyy-MM-dd',
+                    min:0,//最小日期为当天
+                });
+                layui.form.render();
+                    
+                },
+                yes: function (index, layero) {
+                    var newsTitle = layero.find('#newsTitle').val(); //标题  
+                var newsType  = layero.find('#newsType').val(); //类别  
+                var publishDate  = layero.find('#publishDate').val(); //发布日期  
+                var editorContent=editor.txt.html();//富文本编辑器内容
+
+                if (newsTitle=='') {
+                    layer.msg('请输入标题');
+                    return;
+                }
+                if (newsType=='') {
+                    layer.msg('请选择公告类型');
+                    return;
+                }
+                $.ajax({
+                    url: port + '/v1/news/update',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        newsId:item[0].newsId,
+                       content:editorContent,//内容
+                       kindId:newsType,//类别
+                       publishDate:publishDate,//发布日期
+                       title:newsTitle,//标题
+                    },
+                    success: function (e) {
+                        console.log('添加', e);
+                        if (e.status == 200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已修改');
+                            layer.close(index);
+                        } else {
+                            layer.msg(e.msg);
+                        }
+                    }
+                });
+                    
+                },
+                content: '<div class="layui-fluid form-layer layui-form">' +
+                        '<div class="layui-row">' +
+                            '<div class="layui-col-md6">' +
+                                '<label class="layui-form-label"><i class="star">*</i>标题:</label>' +
+                                '<div class="layui-input-block">' +
+                                    '<input type="text" autocomplete="off" class="layui-input" id="newsTitle" value="'+item[0].title+'">' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="layui-col-md6">' +
+                                '<label class="layui-form-label"><i class="star">*</i>公告类型:</label>' +
+                                '<div class="layui-input-block news-type">' +
+                                    '<select id="newsType" lay-filter="newsType">' +
+                                        '<option value=""></option>' +                                
+                                    '</select>' +
+                                '</div>' +
+                            '</div>' +                                            
+                            '<div class="layui-col-md6">' +
+                                '<label class="layui-form-label">发布日期:</label>' +
+                                '<div class="layui-input-block">' +
+                                    '<input type="text" readonly autocomplete="off" class="layui-input" id="publishDate" value="'+item[0].publishTime+'">' +
+                                '</div>' +
+                            '</div>' +                   
+                            '<div class="layui-col-md12">' +
+                                '<label class="layui-form-label">内容:</label>' +
+                                '<div class="layui-input-block layui-filebox clearfix">' +
+                                    '<div id="editor"></div>'+
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请选择单行数据')
+        }
+
+    }
+
+
+    // 删除
+    function delBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var delData = []; //要删除的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要删除的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                delData[i] = item[i].newsId;
+            }
+            console.log('删除', delData);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/news/batchDelete',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'DELETE',
+                        data: {
+                            newsIds: delData
+                        },
+                        success: function (e) {
+                            console.log('删除', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已删除');
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+            });
+
+        }
+    }
+
+    // 详情
+    window.operateEvents = {
+        'click .info': function (e, value, row, index) {
+            console.log('详情', row);
+            layer.open({
+                type: 1,
+                title: '详情',
+                area: ['700px', '525px'],
+                btn: ['关闭'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                    editor.create();
+                    editor.txt.html(row.content);
+                    editor.$textElem.attr('contenteditable', false);
+                    $('.w-e-toolbar').empty()
+                },
+                yes: function (index, layero) {
+                    layer.close(index);
+                },
+                content: '<div class="layui-fluid form-layer">' +
+                    '<table class="detail-table">' +
+                    '<tr>' +
+                    '<td>单位名称:</td>' +
+                    '<td>' + row.cName + '</td>' +
+                    '<td>标题:</td>' +
+                    '<td>' + row.title + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>公告类型:</td>' +
+                    '<td>' + row.kindName + '</td>' +
+                    '<td>发布日期:</td>' +
+                    '<td>' + row.publishTime + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>创建日期:</td>' +
+                    '<td>' + row.createTime + '</td>' +
+                    '<td>创建人:</td>' +
+                    '<td>' + row.operName+ '</td>' +
+                    '</tr>' +
+                    '<td style="vertical-align: top;">内容:</td>' +
+                    '<td colspan="3"><div id="editor"></div></td>' +
+                    '</tr>' +
+                    '</table>' +
+                    '</div> '
+
+            });
+        }
+    };
+
+
+     //根据角色id，判断按钮显隐   
+     var btnGroupData = [
+        {btnName:"新闻公告添加",btnDom:$("#addBtn")},
+        {btnName:"新闻公告修改",btnDom:$("#editBtn")},
+        {btnName:"新闻公告删除",btnDom:$("#delBtn")},       
+        {btnName:"新闻公告预览",btnDom:$("#previewBtn")}      
+    ]
+    judgeBtnShow(btnGroupData)
+</script>
+
+</html>

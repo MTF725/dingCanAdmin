@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>配送费汇总表</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <link rel="stylesheet" href="./iconfont/iconfont.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+         #toolbar .toolbar-btn{display: none;}
+        .layui-fluid {display: none;}
+        .layui-btn-lg {background-color: white; color: #1e9dd3;border: 1px solid #1e9dd3;}
+        .layui-btn-lg:hover {color: #1e9dd3;}
+        .gap-line{color: #e6e6e6;}
+        .more-btn{cursor: pointer;}
+        .hidden-dom{display: none;}
+        .more-btn-box{margin-left: 15px;}
+        .iconxiala2:before{margin-left:5px;font-size: 12px;color:#333333}
+        .iconshangla:before{margin-left:5px;font-size: 14px;color:#333333}      
+        .btn-select{background: #129CD6;color:white;}
+        .btn-select:hover{color:white;}
+        .btn-select:focus{color:white;}
+    </style>
+</head>
+
+<body>
+  <div class="layui-fluid">
+    <div class="layui-row">
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-body">
+                    <div class="switchBtns">
+                        <a href="###" class="layui-btn layui-btn-lg btn-day btn-select" onclick="daySum()">按日汇总</a>
+                        <a href="###" class="layui-btn layui-btn-lg btn-month" onclick="monthSum()">按月汇总</a>
+                        <a href="###" class="layui-btn layui-btn-lg btn-year" onclick="yearSum()">按年汇总</a>
+                    </div>
+                </div>
+                <div class="layui-card-body">
+                    <form class="layui-form table-search-form">
+                        <div class="tools">
+                            <div class="layui-input-inline isSuperAdmin">
+                                <label class="form-label">单位名称</label>
+                                <select id="unitName" lay-filter="unitName">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">单位区域</label>
+                                <select id="unitArea" lay-filter="unitArea">
+                                    <option></option>
+                                </select>
+                            </div>                                                      
+                            <div class="layui-input-inline">
+                                <label class="form-label">关键字</label>
+                                <input type="text" autocomplete="off" class="layui-input" id="keyWord" placeholder="配送员姓名/证件号">
+                            </div>                                     
+                           
+                            <div class="layui-input-inline timeDate" hidden>
+                                <label class="form-label">日期</label>
+                                <input type="text" autocomplete="off" readonly class="layui-input" id="payStartTime1">
+                                <span class="gap-line">—</span>
+                                <input type="text" autocomplete="off" readonly class="layui-input" id="payEndTime1">
+                            </div> 
+                            <div class="layui-input-inline timeMonth" hidden>
+                                <label class="form-label">日期</label>
+                                <input type="text" autocomplete="off" readonly class="layui-input" id="payStartTime2">
+                                <span class="gap-line">—</span>
+                                <input type="text" autocomplete="off" readonly class="layui-input" id="payEndTime2">
+                            </div>  
+                            <div class="layui-input-inline timeYear" hidden>
+                                <label class="form-label">年份</label>
+                                <input type="text" autocomplete="off" readonly class="layui-input" id="payStartTime3">                            
+                            </div> 
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>                 
+                        </div>                      
+                    </form>
+                    <div id="toolbar" class="isAdmin">
+                        <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                        <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                        <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                        <a href="###" id="importBtn" class="toolbar-btn"  onclick="importBtn()">导入</a>
+                        <a href="###" id="exportBtn" class="toolbar-btn"  onclick="exportBtn()">导出</a>
+                    </div>
+                    <table id="table"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/jquery.PrintArea.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    //声明变量记录汇总方式
+    var sumway = 0;
+    var url ="/v1/order/getDeliveryFeeByDay";//表单接口
+    $(function () {
+        $(".layui-fluid").css("display","block");//dom加载完成后展示页面
+        unitList($('#unitName'), 'id'); //单位名称下拉
+        unitAreaList($('#unitArea'), 'id'); //单位区域下拉
+        shopTypeList($('#shopType')); //店铺类型下拉
+        getTable(sumway)
+        switchTime()
+    });
+
+    //查询日期格式切换
+    function switchTime() {
+        if (sumway == 0) {
+            $(".btn-day").addClass("btn-select");
+            $(".btn-month").removeClass("btn-select");
+            $(".btn-year").removeClass("btn-select");
+            $(".timeDate").show()
+            $(".timeMonth").hide()
+            $(".timeYear").hide()
+            layui.use('laydate', function () {
+                var laydate = layui.laydate;
+                //开始日期
+                layui.laydate.render({
+                    elem: '#payStartTime1',
+                    type: "date",
+                    format: 'yyyy-MM-dd',
+                    done: function (value, date, endDate) {
+                        var startTime = new Date(value).getTime();
+                        var endTime = new Date($("#payEndTime1").val()).getTime();
+                        if (endTime < startTime) {
+                            layer.msg('开始时间不能大于结束时间');
+                            $('#payStartTime1').val("");
+                        }
+                    }
+                });
+                //结束日期
+                layui.laydate.render({
+                    elem: '#payEndTime1',
+                    type: "date",
+                    done: function (value, date, endDate) {
+                        var endTime = new Date(value).getTime();
+                        var startTime = new Date($("#payStartTime1").val()).getTime();
+                        if (endTime < startTime) {
+                            layer.msg('结束时间不能小于开始时间');
+                            $('#payEndTime1').val("");
+                        }
+
+                    }
+                });
+            })
+        }
+        if (sumway == 1) {
+            $(".btn-day").removeClass("btn-select");
+            $(".btn-month").addClass("btn-select");
+            $(".btn-year").removeClass("btn-select");
+            $(".timeDate").hide()
+            $(".timeMonth").show()
+            $(".timeYear").hide()
+            //开始日期
+            layui.laydate.render({
+                elem: '#payStartTime2',
+                type: "month",
+                format: 'yyyy-MM-dd',
+                // 点击即选中
+                ready: function (date) {
+                    $(".layui-laydate").off('click').on('click', '.laydate-month-list li',
+                        function () {
+                            $(".layui-laydate").remove();
+                        });
+                },
+                change: function (value, dates, edate) {
+                    $('#payStartTime2').val(value);
+                    var startTime = new Date(value).getTime();
+                    var endTime = new Date($("#payEndTime2").val()).getTime();
+                    if (endTime < startTime) {
+                        layer.msg('开始时间不能大于结束时间');
+                        $('#payStartTime2').val("");
+                    }
+                },
+                done: function (value, date, endDate) {
+                    
+                }
+            });
+            //结束日期
+            layui.laydate.render({
+                elem: '#payEndTime2',
+                type: "month",
+                // 点击即选中
+                ready: function (date) {
+                    $(".layui-laydate").off('click').on('click', '.laydate-month-list li',
+                        function () {
+                            $(".layui-laydate").remove();
+                        });
+                },
+                change: function (value, dates, edate) {
+                    $('#payEndTime2').val(value);
+                    var endTime = new Date(value).getTime();
+                    var startTime = new Date($("#payStartTime2").val()).getTime();
+                    if (endTime < startTime) {
+                        layer.msg('结束时间不能小于开始时间');
+                        $('#payEndTime2').val("");
+                    }
+                },
+                done: function (value, date, endDate) {
+                    
+                }
+            });
+        }
+        if (sumway == 2) {
+            $(".btn-day").removeClass("btn-select");
+            $(".btn-month").removeClass("btn-select");
+            $(".btn-year").addClass("btn-select");
+            $(".timeDate").hide()
+            $(".timeMonth").hide()
+            $(".timeYear").show()
+            //日期
+            layui.laydate.render({
+                elem: '#payStartTime3',
+                type: "year",
+                format: 'yyyy-MM-dd',
+                // 点击即选中
+                ready: function (date) {
+                    $(".layui-laydate").off('click').on('click', '.laydate-year-list li',
+                        function () {
+                            $(".layui-laydate").remove();
+                        });
+                },
+                change: function (value, dates, edate) {
+                    $('#payStartTime3').val(value);
+                },
+            });
+        }
+    }
+
+    //根据查询方式不同，调用不同的数据查询方法
+    function queryParamsType(){
+        if(sumway==0){
+            return queryParamsDay;
+        }else if(sumway==1){
+            return queryParamsMonth;
+        }else{
+            return queryParamsYear;
+        }
+    }
+
+    //获取表单数据
+    function getTable(day) {
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + url,
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParamsType(), //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-140, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) {
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            },{
+                field: 'cName',
+                align: 'center',
+                title: '单位名称'
+            }, {
+                field: 'cAreaName',
+                align: 'center',
+                title: '单位区域',
+            }, {
+                field: 'dPersonName',
+                align: 'center',
+                title: '配送员姓名',
+            },{
+                field: 'dPersonSex',
+                align: 'center',
+                title: '性别',
+                formatter: function (value, row, index) {
+                    if(value ==1){
+                        return "男";
+                    }else if(value ==2){
+                        return "女";
+                    }
+                }
+            }, {
+                field: 'dPersonNo',
+                align: 'center',
+                title: '证件号',
+            },  {
+                field: 'orderCounter',
+                align: 'center',
+                title: '交易笔数'
+            }, {
+                field: 'deliveryFee',
+                align: 'center',
+                title: '配送费金额（元）'
+            },{
+                field: 'createTime',
+                align: 'center',
+                title: sumway == 2 ? "年份" : "日期"
+            }],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('窗口信息', data);
+                if (data.rows==0) {
+                    setTreeTableHeight(130);
+                }
+            },
+            //加载失败时执行
+            onLoadError: function () {
+               
+            },
+            onClickRow: function (row, $element) {}
+        });
+    }
+    
+    //按日汇总
+    function daySum() {
+        sumway = 0;
+        url="/v1/order/getDeliveryFeeByDay";
+        $('#table').bootstrapTable('destroy');
+        getTable(sumway);
+        switchTime();
+    }
+
+    //按月汇总
+    function monthSum() {
+        sumway = 1;
+        url="/v1/order/getDeliveryFeeByMonth";
+        $('#table').bootstrapTable('destroy')
+        getTable(sumway);
+        switchTime();
+    }
+
+    //按年汇总
+    function yearSum() {
+        sumway = 2;
+        url="/v1/order/getDeliveryFeeByYear";
+        $('#table').bootstrapTable('destroy')
+        getTable(sumway);
+        switchTime();
+    }
+
+    // 导出
+    function exportBtn() {
+        var outType="";
+        if(sumway==2){
+          outType='年份';
+        }else{
+          outType='日期';
+        }
+            location.href = port + "/v1/payRecord/outTotalExcel?totalType=" +sumway+"&outType="+outType;
+    }
+
+    //数据表格查询参数（按日查询）
+    function queryParamsDay(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            cId: setUnitId('#unitName'), //单位id
+            cAreaId: $('#unitArea').val(), //单位区域id
+            keyword: $('#keyWord').val(), //关键字
+            startDate: $('#payStartTime1').val(),//开始日期
+            endDate :$('#payEndTime1').val()//结束日期
+        };
+        console.log("temp",temp)
+        return temp;
+    }
+
+      //数据表格查询参数（按月查询）
+    function queryParamsMonth(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            cId: setUnitId('#unitName'), //单位id
+            cAreaId: $('#unitArea').val(), //单位区域id
+            keyword: $('#keyWord').val(), //关键字
+            startMonth : $('#payStartTime2').val(),//开始月
+            endMonth  :$('#payEndTime2').val()//结束月
+        };
+        console.log("temp",temp)
+        return temp;
+    }
+
+      //数据表格查询参数（按年查询）
+    function queryParamsYear(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            cId: setUnitId('#unitName'), //单位id
+            cAreaId: $('#unitArea').val(), //单位区域id
+            keyword: $('#keyWord').val(), //关键字
+            year : $('#payStartTime3').val(),//开始年
+           
+        };
+        console.log("temp",temp)
+        return temp;
+    }  
+   
+    //单位名称change时，根据选中的单位id级联查询单位区域
+    layui.form.on('select(unitName)', function (data) {
+        $('#unitArea').html('<option value=""></option>');
+        $('#shopType').val('');
+        $('#shopName').html('<option value=""></option>');
+        $('#shopFloor').html('<option value=""></option>');
+        layui.form.render("select");
+        unitAreaList($('#unitArea'), 'id', data.value); //单位区域下拉
+    });
+
+    //单位区域change时，根据选中的单位id级联查询单位区域
+    layui.form.on('select(unitArea)', function (data) {
+        $('#shopType').val('');
+        $('#shopName').html('<option value=""></option>');
+        $('#shopFloor').html('<option value=""></option>');
+        layui.form.render("select");
+    });
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+    //更多条件
+    function moreCheck(){
+        if($(".tools-group").hasClass("hidden-dom")){
+            $(".tools-group").removeClass("hidden-dom");
+            $(".more-btn").children("i").removeClass("iconxiala2");
+            $(".more-btn").children("i").addClass("iconshangla");
+            
+        }else{
+            $(".tools-group").addClass("hidden-dom");
+            $(".more-btn").children("i").removeClass("iconshangla");
+            $(".more-btn").children("i").addClass("iconxiala2");
+        }
+    }
+
+    //根据角色id，判断按钮显隐   
+    var btnGroupData = [
+        {btnName:"配送费汇总表导出",btnDom:$("#exportBtn")},    
+    ]
+    judgeBtnShow(btnGroupData)
+</script>
+</html>

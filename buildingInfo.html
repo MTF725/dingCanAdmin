@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>建筑信息</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+    <style type="text/css">
+        #toolbar .toolbar-btn{display: none;}
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline isSuperAdmin">
+                                <label class="form-label">单位名称</label>
+                                <select id="unitName" lay-filter="unitName">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">单位区域</label>
+                                <select id="unitArea" lay-filter="unitArea">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">配送区域</label>
+                                <select id="sendArea">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">楼宇名称</label>
+                                <input type="text" autocomplete="off" class="layui-input" id="buildName">
+                            </div>
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>
+                        </form>
+                        <div id="toolbar" class="isAdmin">
+                            <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                            <a href="###" id="importBtn" class="toolbar-btn"  onclick="importBtn()">导入</a>
+                            <a href="###" id="exportBtn" class="toolbar-btn"  onclick="exportBtn()">导出</a>
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+
+$(function() {
+
+    unitList($('#unitName'),'id');//单位名称下拉
+    if (!localStorage.getItem('superAdmin')) {
+        unitAreaList($('#unitArea'),'id');//单位区域下拉
+    }
+    
+
+    // 数据表格
+    $('#table').bootstrapTable({
+         url:port+'/v1/build/query',
+         ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+         method: 'get',
+         locale: 'zh-CN',
+         toolbar: '#toolbar', //工具按钮用哪个容器
+         striped: true, //是否显示行间隔色
+         cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+         pagination: true, //是否显示分页（*）
+         sortable: true, //是否启用排序
+         sortOrder: "asc", //排序方式
+         undefinedText:'',//当数据为 undefined 时显示的字符
+         queryParams:queryParams, //查询参数
+         sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+         pageNum: 1, //初始化加载第一页，默认第一页
+         pageSize: 100, //每页的记录行数（*）
+         pageList: [20], //可供选择的每页的行数（*）
+         search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+         strictSearch: true,
+         paginationHAlign:'left',//指定 分页条 在水平方向的位置。’left’ or ‘right’
+         paginationDetailHAlign:'right',//指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+         showColumns: true, //是否显示所有的列
+         showRefresh: true, //是否显示刷新按钮
+         minimumCountColumns: 2, //最少允许的列数
+         clickToSelect: true, //是否启用点击选中行
+         height: $(window).height()-90, //表格的高度
+         uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+         showToggle: false, //是否显示详细视图和列表视图的切换按钮
+         cardView: false, //是否显示详细视图
+         detailView: false, //是否显示父子表
+         showRefresh:false,//隐藏刷新按钮
+         showColumns:false,//隐藏某列下拉菜单
+         responseHandler: function(res) {//处理请求的数据
+            return {
+                "total": res.data.total,//总页数
+                "rows": res.data.list   //数据
+            };
+        },
+         columns: [{
+             checkbox: true
+         }, {
+             field: 'cName',
+             align: 'center',
+             title: '单位名称'
+         }, {
+             field: 'cAreaName',
+             align: 'center',
+             title: '单位区域'
+         }, {
+             field: 'dAreaName',
+             align: 'center',
+             title: '配送区域',
+         },{
+             field: 'buildName',
+             align: 'center',
+             title: '楼宇名称',
+         },{
+             field: 'buildFloorHeight',
+             align: 'center',
+             title: '层高',
+         },{
+             field: 'buildSex',
+             align: 'center',
+             title: '性别',
+         },{
+             field: 'name9',
+             align: 'center',
+             title: '操作',
+             events: operateEvents,
+            formatter: function(value, row, index) {
+                var result = "<a href='javascript:;' class='info' style='color:#129CD6;'>查看</a>";
+                return result;
+            }
+         }],
+
+         //加载成功时执行
+         onLoadSuccess: function(data) {
+             console.log('建筑信息', data);
+             if (data.rows==0) {
+                    setTreeTableHeight(130);
+                }
+         },
+         //加载失败时执行
+         onLoadError: function() {
+            
+         },
+         onClickRow: function(row, $element) {}
+    });
+
+});
+
+//数据表格查询参数
+function queryParams(params) {
+    var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+     pageSize: params.limit, //页面大小
+     pageNum: (params.offset / params.limit) + 1, //页码
+     cId:setUnitId('#unitName'),//单位名称id
+     cAreaId:$('#unitArea').val(),//单位区域id
+     dAreaId:$('#sendArea').val(),//配送区域id
+     keyword:$('#buildName').val(),//楼宇名称
+    };
+    return temp;
+}
+
+//单位名称change时，根据选中的单位id级联查询单位区域
+layui.form.on('select(unitName)', function(data){
+    $('#unitArea').html('<option value=""></option>');
+    $('#sendArea').html('<option value=""></option>');
+    layui.form.render("select");
+    if (data.value) {
+        unitAreaList($('#unitArea'),'id',data.value);//单位区域下拉
+    }
+    
+});
+
+//单位区域级联查询配送区域
+layui.form.on('select(unitArea)', function(data){
+    $('#sendArea').html('<option value=""></option>');
+    layui.form.render("select");
+    sendAreaList($('#sendArea'),'id',data.value);//配送区域下拉
+});
+
+// 查询
+function searchBtn() {
+    $('#table').bootstrapTable('refresh');
+}
+
+// 添加
+function addBtn(){
+     layer.open({
+        type:1,
+        title:'添加',
+        area: ['560px', '500px'],
+        btn:['确定','取消'],
+        btnAlign: 'c',
+        success: function(layero, index){
+           layui.form.render('select');
+
+           unitList(layero.find('#unitName'),'id');//单位名称下拉
+           unitAreaList(layero.find('#unitArea'),'id');//单位区域下拉
+           // sendAreaList(layero.find('#sendArea'),'id');//配送区域下拉
+
+           //单位区域级联查询配送区域
+            layui.form.on('select(unitArea)', function(data){
+                console.log(data);
+                layero.find('#sendArea').html('<option value=""></option>');
+                layui.form.render("select");
+                sendAreaList(layero.find('#sendArea'),'id',data.value);//配送区域下拉
+            });
+
+           // 开工时间
+            layui.laydate.render({
+                elem: '#startTime',
+                trigger: 'click',
+                min: new Date().toLocaleString(),//最小日期为当前日期
+                done: function(value, date, endDate){
+                layero.find('#startTime').attr('value',value);
+              }
+            });
+
+             // 竣工时间
+            layui.laydate.render({
+                elem: '#endTime',
+                trigger: 'click',
+                min: new Date().toLocaleString(),//最小日期为当前日期
+                done: function(value, date, endDate){
+                layero.find('#endTime').attr('value',value);
+              }
+            });
+           
+        },
+        yes: function(index, layero){
+            var unitArea=layero.find('#unitArea').val();//单位区域id
+            var sendArea=layero.find('#sendArea').val();//配送区域id
+            var buildCode=layero.find('#buildCode').val();//楼宇代码
+            var buildName=layero.find('#buildName').val();//楼宇名称
+            var startTime=layero.find('#startTime').val();//开工时间
+            var sex=layero.find('#sex').val();//性别
+            var endTime=layero.find('#endTime').val();//竣工时间
+            var oldName=layero.find('#oldName').val();//曾用名
+            var sgUnit=layero.find('#sgUnit').val();//施工单位
+            var buildType=layero.find('#buildType').val();//建筑类型
+            var floor=layero.find('#floor').val();//层高
+            var address=layero.find('#address').val();//地理位置
+            var remark=layero.find('#remark').val();//备注
+
+            if (unitArea=='') {
+                layer.msg('请选择单位区域');
+                return;
+            }
+            if (sendArea=='') {
+                layer.msg('请选择配送区域');
+                return;
+            }
+            if (buildName=='') {
+                layer.msg('请输入楼宇名称');
+                return;
+            }
+
+            if (timeStamp(startTime)>=timeStamp(endTime)) {
+                layer.msg('竣工时间需晚于开工时间');
+                return;
+            }
+
+             if (!zzsReg.test(floor)&&floor) {
+                layer.msg('层高需大于0的整数');
+                return;
+            }
+
+             $.ajax({
+                url:port+'/v1/build/insert',
+                xhrFields: {
+                    withCredentials: true
+                },
+                type:'post',
+                data:{
+                    buildAddress:address,//地理位置
+                    buildBeforeName:oldName,//曾用名
+                    buildCompany:sgUnit,//施工单位
+                    buildEndTime:endTime,//竣工时间
+                    buildFloorHeight:floor,//层高
+                    buildName:buildName,//楼宇名称
+                    buildNo:buildCode,//楼宇代码
+                    buildRemark:remark,//备注
+                    buildSex:sex,//性别
+                    buildStartTime:startTime,//开工时间
+                    buildType:buildType,//建筑类型
+                    cAreaId:unitArea,//单位区域id
+                    cId:localStorage.getItem('unitId'),//单位id
+                    dAreaId:sendArea,//配送区域id
+                },
+                success:function(e){
+                    console.log('添加',e);
+                    if (e.status==200) {
+                        $('#table').bootstrapTable('refresh');
+                        layer.msg('已添加');
+                        layer.close(index);
+                    }else{
+                        layer.msg(e.data);
+                    }
+                }
+            });
+
+        },
+        content:
+            '<div class="layui-fluid form-layer layui-form layui-tab layui-tab-brief" style="padding-top: 0;">'
+                +'<ul class="layui-tab-title" style="text-align:center;margin-bottom:10px;display:none;">'
+                    +'<li class="layui-this">楼宇信息</li>'
+                    +'<li>楼宇3D图</li>'
+                    +'<li>楼宇2D图</li>'
+                +'</ul>'
+                +'<div class="layui-tab-content">'
+                    +'<div class="layui-tab-item layui-show">'
+                        +'<div class="layui-row">'
+                             +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">单位名称:</label>'
+                                +'<div class="layui-input-block">'
+                                    +'<input type="text" readonly autocomplete="off" class="layui-input" id="unitName" value='+localStorage.getItem('unitName')+' data-id='+localStorage.getItem('unitId')+'>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label"><i class="star">*</i>单位区域:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<select id="unitArea" lay-filter="unitArea">'
+                                    +'<option></option>'
+                                  +'</select>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label"><i class="star">*</i>配送区域:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<select id="sendArea">'
+                                    +'<option></option>'
+                                  +'</select>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">楼宇代码:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="text" autocomplete="off" class="layui-input" id="buildCode">'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label"><i class="star">*</i>楼宇名称:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="text" autocomplete="off" class="layui-input" id="buildName">'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">开工时间:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input readonly type="text" autocomplete="off" class="layui-input" id="startTime">'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">性别:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<select id="sex">'
+                                    +'<option>男</option>'
+                                    +'<option>女</option>'
+                                  +'</select>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">竣工时间:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input readonly type="text" autocomplete="off" class="layui-input" id="endTime">'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">曾用名:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="text" autocomplete="off" class="layui-input" id="oldName">'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">施工单位:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="text" autocomplete="off" class="layui-input" id="sgUnit">'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">建筑类型:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<select id="buildType">'
+                                    +'<option value="1">框架结构</option>'
+                                    +'<option value="2">混合结构</option>'
+                                    +'<option value="3">砖木三等</option>'
+                                    +'<option value="4">简易结构</option>'
+                                    +'<option value="5">钢架结构</option>'
+                                  +'</select>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">层高:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="number" autocomplete="off" class="layui-input" id="floor">'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md12">'
+                                +'<label class="layui-form-label">地理位置:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="text" autocomplete="off" class="layui-input" id="address">'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md12">'
+                                +'<label class="layui-form-label">备注:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input maxlength="100" type="text" autocomplete="off" class="layui-input" id="remark">'
+                                +'</div>'
+                            +'</div>'
+                        +'</div>'
+                    +'</div>'
+                    +'<div class="layui-tab-item">'
+                        +'<div class="layui-row">'
+                            +'<div class="layui-col-md12 import-layer">'
+                                +'<label class="layui-form-label">选择文件:</label>'
+                                +'<div class="layui-input-block">'
+                                    +'<div class="choose-file">'
+                                        +'<p class="file-name"></p>'
+                                        +'<span>浏览<input type="file" id="importFile3D" /></span>'
+                                    +'</div>'
+                                +'</div>'
+                            +'</div>'
+                        +'</div>'
+                    +'</div>'
+                    +'<div class="layui-tab-item">'
+                        +'<div class="layui-row">'
+                            +'<div class="layui-col-md12 import-layer">'
+                                +'<label class="layui-form-label">选择文件:</label>'
+                                +'<div class="layui-input-block">'
+                                    +'<div class="choose-file">'
+                                        +'<p class="file-name"></p>'
+                                        +'<span>浏览<input type="file" id="importFile2D" /></span>'
+                                    +'</div>'
+                                +'</div>'
+                            +'</div>'
+                        +'</div>'
+                    +'</div>'
+                +'</div>'
+            +'</div> ' 
+     });
+}
+
+// 修改
+function editBtn(){
+    var item = $("#table").bootstrapTable('getSelections');
+    console.log('修改',item[0]);
+    if (!item[0].buildStartTime) {
+        item[0].buildStartTime='';
+    }
+     if (!item[0].buildEndTime) {
+        item[0].buildEndTime='';
+    }
+    if (item.length==1) {
+        layer.open({
+        type:1,
+        title:'修改',
+        area: ['560px', '500px'],
+        btn:['确定','取消'],
+        btnAlign: 'c',
+        success: function(layero, index){
+
+           unitList(layero.find('#unitName'),'id');//单位名称下拉
+           unitAreaList(layero.find('#unitArea'),'id');//单位区域下拉
+           sendAreaList(layero.find('#sendArea'),'id',item[0].cAreaId);//配送区域下拉
+
+           // 单位区域回显下拉
+           layero.find('#unitArea option').each(function(i,a) {
+               if (item[0].cAreaName==$(a).html()) {
+                    $(a).attr('selected',true);
+                    layui.form.render('select');
+               }
+           });
+
+           // 配送区域回显下拉
+           layero.find('#sendArea option').each(function(i,a) {
+               if (item[0].dAreaName==$(a).html()) {
+                    $(a).attr('selected',true);
+                    layui.form.render('select');
+               }
+           });
+
+           //单位区域级联查询配送区域
+            layui.form.on('select(unitArea)', function(data){
+                console.log(data);
+                layero.find('#sendArea').html('<option value=""></option>');
+                layui.form.render("select");
+                sendAreaList(layero.find('#sendArea'),'id',data.value);//配送区域下拉
+            });
+
+           // 性别回显下拉
+           layero.find('#sex option').each(function(i,a) {
+               if (item[0].buildSex==$(a).html()) {
+                    $(a).attr('selected',true);
+                    layui.form.render('select');
+               }
+           });
+
+           // 建筑类型回显下拉
+           layero.find('#buildType option').each(function(i,a) {
+               if (item[0].buildType==$(a).val()) {
+                    $(a).attr('selected',true);
+                    layui.form.render('select');
+               }
+           });
+
+           // 开工时间
+            layui.laydate.render({
+                elem: '#startTime',
+                trigger: 'click',
+                min: new Date().toLocaleString(),//最小日期为当前日期
+                done: function(value, date, endDate){
+                layero.find('#startTime').attr('value',value);
+              }
+            });
+
+
+             // 竣工时间
+            layui.laydate.render({
+                elem: '#endTime',
+                trigger: 'click',
+                min: new Date().toLocaleString(),//最小日期为当前日期
+                done: function(value, date, endDate){
+                layero.find('#endTime').attr('value',value);
+              }
+            });
+           
+        },
+        yes: function(index, layero){
+            var unitArea=layero.find('#unitArea').val();//单位区域id
+            var sendArea=layero.find('#sendArea').val();//配送区域id
+            var buildCode=layero.find('#buildCode').val();//楼宇代码
+            var buildName=layero.find('#buildName').val();//楼宇名称
+            var startTime=layero.find('#startTime').val();//开工时间
+            var sex=layero.find('#sex').val();//性别
+            var endTime=layero.find('#endTime').val();//竣工时间
+            var oldName=layero.find('#oldName').val();//曾用名
+            var sgUnit=layero.find('#sgUnit').val();//施工单位
+            var buildType=layero.find('#buildType').val();//建筑类型
+            var floor=layero.find('#floor').val();//层高
+            var address=layero.find('#address').val();//地理位置
+            var remark=layero.find('#remark').val();//备注
+
+            if (unitArea=='') {
+                layer.msg('请选择单位区域');
+                return;
+            }
+            if (sendArea=='') {
+                layer.msg('请选择配送区域');
+                return;
+            }
+            if (buildName=='') {
+                layer.msg('请输入楼宇名称');
+                return;
+            }
+
+            if (timeStamp(startTime)>=timeStamp(endTime)) {
+                layer.msg('竣工时间需晚于开工时间');
+                return;
+            }
+
+             if (!zzsReg.test(floor)&&floor) {
+                layer.msg('层高需大于0的整数');
+                return;
+            }
+
+             $.ajax({
+                url:port+'/v1/build/update',
+                xhrFields: {
+                    withCredentials: true
+                },
+                type:'post',
+                data:{
+                    buildId:item[0].buildId,//建筑id
+                    buildAddress:address,//地理位置
+                    buildBeforeName:oldName,//曾用名
+                    buildCompany:sgUnit,//施工单位
+                    buildEndTime:endTime,//竣工时间
+                    buildFloorHeight:floor,//层高
+                    buildName:buildName,//楼宇名称
+                    buildNo:buildCode,//楼宇代码
+                    buildRemark:remark,//备注
+                    buildSex:sex,//性别
+                    buildStartTime:startTime,//开工时间
+                    buildType:buildType,//建筑类型
+                    cAreaId:unitArea,//单位区域id
+                    cId:item[0].cId,//单位id
+                    dAreaId:sendArea,//配送区域id
+                },
+                success:function(e){
+                    console.log('修改',e);
+                    if (e.status==200) {
+                        $('#table').bootstrapTable('refresh');
+                        layer.msg('已修改');
+                        layer.close(index);
+                    }else{
+                        layer.msg(e.data);
+                    }
+                }
+            });
+
+        },
+        content:
+            '<div class="layui-fluid form-layer layui-form layui-tab layui-tab-brief" style="padding-top: 0;">'
+                +'<ul class="layui-tab-title" style="text-align:center;margin-bottom:10px;display:none;">'
+                    +'<li class="layui-this">楼宇信息</li>'
+                    +'<li>楼宇3D图</li>'
+                    +'<li>楼宇2D图</li>'
+                +'</ul>'
+                +'<div class="layui-tab-content">'
+                    +'<div class="layui-tab-item layui-show">'
+                        +'<div class="layui-row">'
+                             +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">单位名称:</label>'
+                                +'<div class="layui-input-block">'
+                                    +'<input type="text" readonly autocomplete="off" class="layui-input" id="unitName" value='+localStorage.getItem('unitName')+' data-id='+localStorage.getItem('unitId')+'>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label"><i class="star">*</i>单位区域:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<select id="unitArea" lay-filter="unitArea">'
+                                    +'<option></option>'
+                                  +'</select>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label"><i class="star">*</i>配送区域:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<select id="sendArea">'
+                                    +'<option></option>'
+                                  +'</select>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">楼宇代码:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="text" autocomplete="off" class="layui-input" id="buildCode" value='+item[0].buildNo+'>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label"><i class="star">*</i>楼宇名称:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="text" autocomplete="off" class="layui-input" id="buildName" value='+item[0].buildName+'>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">开工时间:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input readonly type="text" autocomplete="off" class="layui-input" id="startTime" value='+item[0].buildStartTime+'>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">性别:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<select id="sex">'
+                                    +'<option>男</option>'
+                                    +'<option>女</option>'
+                                  +'</select>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">竣工时间:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input readonly type="text" autocomplete="off" class="layui-input" id="endTime" value='+item[0].buildEndTime+'>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">曾用名:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="text" autocomplete="off" class="layui-input" id="oldName" value='+item[0].buildBeforeName+'>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">施工单位:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="text" autocomplete="off" class="layui-input" id="sgUnit" value='+item[0].buildCompany+'>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">建筑类型:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<select id="buildType">'
+                                    +'<option value="1">框架结构</option>'
+                                    +'<option value="2">混合结构</option>'
+                                    +'<option value="3">砖木三等</option>'
+                                    +'<option value="4">简易结构</option>'
+                                    +'<option value="5">钢架结构</option>'
+                                  +'</select>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md6">'
+                                +'<label class="layui-form-label">层高:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="number" autocomplete="off" class="layui-input" id="floor" value='+item[0].buildFloorHeight+'>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md12">'
+                                +'<label class="layui-form-label">地理位置:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input type="text" autocomplete="off" class="layui-input" id="address" value='+item[0].buildAddress+'>'
+                                +'</div>'
+                            +'</div>'
+                            +'<div class="layui-col-md12">'
+                                +'<label class="layui-form-label">备注:</label>'
+                                +'<div class="layui-input-block">'
+                                  +'<input maxlength="100" type="text" autocomplete="off" class="layui-input" id="remark" value='+item[0].buildRemark+'>'
+                                +'</div>'
+                            +'</div>'
+                        +'</div>'
+                    +'</div>'
+                    +'<div class="layui-tab-item">'
+                        +'<div class="layui-row">'
+                            +'<div class="layui-col-md12 import-layer">'
+                                +'<label class="layui-form-label">选择文件:</label>'
+                                +'<div class="layui-input-block">'
+                                    +'<div class="choose-file">'
+                                        +'<p class="file-name"></p>'
+                                        +'<span>浏览<input type="file" id="importFile3D" /></span>'
+                                    +'</div>'
+                                +'</div>'
+                            +'</div>'
+                        +'</div>'
+                    +'</div>'
+                    +'<div class="layui-tab-item">'
+                        +'<div class="layui-row">'
+                            +'<div class="layui-col-md12 import-layer">'
+                                +'<label class="layui-form-label">选择文件:</label>'
+                                +'<div class="layui-input-block">'
+                                    +'<div class="choose-file">'
+                                        +'<p class="file-name"></p>'
+                                        +'<span>浏览<input type="file" id="importFile2D" /></span>'
+                                    +'</div>'
+                                +'</div>'
+                            +'</div>'
+                        +'</div>'
+                    +'</div>'
+                +'</div>'
+            +'</div> ' 
+     });
+    }else {
+        layer.msg('请选择单行数据')
+    }
+     
+}
+
+// 删除
+function delBtn(){
+    var item = $("#table").bootstrapTable('getSelections');
+    var delData = []; //要删除的数据
+
+    if (item.length == 0) {
+        layer.msg('请选择要删除的数据');
+    } else {
+        for (var i = 0; i < item.length; i++) {
+            delData[i] = item[i].buildId;
+        }
+        console.log('删除', delData);
+
+        layer.open({
+            type: 1,
+            title: '提示',
+            area: ['300px', '200px'],
+            btn: ['确定', '取消'],
+            yes: function(index, layero) {
+                $.ajax({
+                    url:port+'/v1/build/patchDelete',
+                    xhrFields: {
+                    withCredentials: true
+                },
+                    type:'DELETE',
+                    data:{
+                        buildIds:delData
+                    },
+                    success:function(e){
+                        console.log('删除',e)
+                        if (e.status==200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已删除');
+                            layer.close(index);
+                        }
+                    }
+                })
+            },
+            btnAlign: 'c',
+            content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+        });
+
+    }
+}
+
+// 导入
+function importBtn(){
+    layer.open({
+            type: 1,
+            title: '导入',
+            area: ['380px', '250px'],
+            btn: ['导入', '取消'],
+            yes: function(index, layero) {
+                formData.append("cId",localStorage.getItem("unitId"))
+                $.ajax({
+                        url: port + '/v1/build/import',
+                        xhrFields: {
+                            withCredentials: true
+                        },                   
+                        type: 'POST',
+                        async: false,
+                        data:formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (e) {
+                            console.log('导入', e);                                                   
+                            layer.open({
+                                type: 1,
+                                title: '提示',
+                                area: ['380px', '250px'],
+                                btn: ['关闭'],
+                                btnAlign: 'c',
+                                success:function(layero, index){        
+                                $('#table').bootstrapTable('refresh');                             
+                                    if(e.errorDetails.length>0){
+                                        layero.find(".import-layer-errText").css("display","block");                                                                   
+                                    }
+                                },
+                                yes:function(layero, index){
+                                    layer.closeAll();
+                                },
+                                content: '<div class="layui-fluid import-layer ">'+
+                                            '<p class="import-layer-result">' +e.result+'</p>'+
+                                            '<p class="import-layer-errText" onclick="downloadErrMsg()"> 下载错误信息</p>'+
+                                         '</div>'
+                            })
+                        }
+                })  
+            },
+            btnAlign: 'c',
+            content: 
+                '<div class="layui-fluid import-layer">'
+                    +'<div class="item">'
+                        +'<label>模板:</label>'
+                        +'<a href="###" class="down-module"  onclick="downloadTemplate()">点击下载模板</a>'
+                    +'</div>'
+                    +'<div class="item">'
+                        +'<label>选择文件:</label>'
+                        +'<div class="choose-file">'
+                            +'<p class="file-name"></p>'
+                            +'<span>浏览<input type="file" onchange="importFile(this)" /></span>'
+                        +'</div>'
+                    +'</div>'
+                +'</div>'
+            
+        });
+}
+
+
+// 详情
+window.operateEvents = {
+    'click .info':function(e, value, row, index) {
+        console.log('详情',row);
+        layer.open({
+        type:1,
+        title:'详情',
+        area: ['560px', '450px'],
+        btn:['关闭'],
+        btnAlign: 'c',
+        success: function(layero, index){
+            
+        },
+        yes: function(index, layero){
+            layer.close(index);
+        },
+        content:
+            '<div class="layui-fluid form-layer layui-form layui-tab layui-tab-brief" style="padding-top: 0;">'
+                +'<ul class="layui-tab-title" style="text-align:center;margin-bottom:10px;display:none;">'
+                    +'<li class="layui-this">楼宇信息</li>'
+                    +'<li>楼宇3D图</li>'
+                    +'<li>楼宇2D图</li>'
+                +'</ul>'
+                +'<div class="layui-tab-content">'
+                    +'<div class="layui-tab-item layui-show">'
+                        +'<table class="detail-table">'
+                            +'<tr>'
+                                +'<td>单位名称:</td>'
+                                +'<td>'+isNull(row.cName)+'</td>'
+                                +'<td>单位区域:</td>'
+                                +'<td>'+isNull(row.cAreaName)+'</td>'
+                            +'</tr>'
+                            +'<tr>'
+                                +'<td>配送区域:</td>'
+                                +'<td>'+isNull(row.dAreaName)+'</td>'
+                                +'<td>楼宇代码:</td>'
+                                +'<td>'+isNull(row.buildNo)+'</td>'
+                            +'</tr>'
+                            +'<tr>'
+                                +'<td>楼宇名称:</td>'
+                                +'<td>'+isNull(row.buildName)+'</td>'
+                                +'<td>开工时间:</td>'
+                                +'<td>'+isNull(row.buildStartTime)+'</td>'
+                            +'</tr>'
+                            +'<tr>'
+                                +'<td>性别:</td>'
+                                +'<td>'+isNull(row.buildSex)+'</td>'
+                                +'<td>竣工时间:</td>'
+                                +'<td>'+isNull(row.buildEndTime)+'</td>'
+                            +'</tr>'
+                            +'<tr>'
+                                +'<td>曾用名:</td>'
+                                +'<td>'+isNull(row.buildBeforeName)+'</td>'
+                                +'<td>施工单位:</td>'
+                                +'<td>'+isNull(row.buildCompany)+'</td>'
+                            +'</tr>'
+                            +'<tr>'
+                                +'<td>建筑类型:</td>'
+                                +'<td>'+(row.buildType==1?'框架结构':row.buildType==2?'混合结构':row.buildType==3?'砖木三等':row.buildType==4?'简易结构':'钢架结构')+'</td>'
+                                +'<td>层高:</td>'
+                                +'<td>'+isNull(row.buildFloorHeight)+'</td>'
+                            +'</tr>'
+                            +'<tr>'
+                                +'<td>地理位置:</td>'
+                                +'<td colspan="3">'+isNull(row.buildAddress)+'</td>'
+                            +'</tr>'
+                            +'<tr>'
+                                +'<td>备注:</td>'
+                                +'<td colspan="3">'+isNull(row.buildRemark)+'</td>'
+                            +'</tr>'
+                        +'</table>'
+                    +'</div>'
+                    +'<div class="layui-tab-item">'
+                        
+                    +'</div>'
+                    +'<div class="layui-tab-item">'
+                       
+                    +'</div>'
+                +'</div>'
+            +'</div> ' 
+     });
+    }
+};
+
+ //下载模板
+function downloadTemplate(){
+    location.href="./templateExcel/建筑信息.xlsx";
+}
+
+//下载错误信息 
+function downloadErrMsg(){
+    location.href=port+"/v1/build/exportError";
+}
+
+// 导入
+function importFile(_this){
+   //清空formData
+    formData=null;
+    formData=new FormData; 
+    var fileName = window.event.target.files[0].name;         
+    formData.append("file",window.event.target.files[0])
+    $(_this).parent().siblings('.file-name').html(fileName)
+}
+
+ //导出
+function exportBtn(){         
+    location.href=port+"/v1/build/export?cAreaId="+$("#unitArea").val()+"&cId="+localStorage.getItem("unitId")+"&dAreaId="+$("#sendArea").val()+"&keyword="+$("#buildName").val()
+}
+
+//根据角色id，判断按钮显隐   
+var btnGroupData = [
+    {btnName:"建筑信息添加",btnDom:$("#addBtn")},
+    {btnName:"建筑信息修改",btnDom:$("#editBtn")},
+    {btnName:"建筑信息删除",btnDom:$("#delBtn")},
+    {btnName:"建筑信息导入",btnDom:$("#importBtn")},
+    {btnName:"建筑信息导出",btnDom:$("#exportBtn")},
+]
+judgeBtnShow(btnGroupData)
+</script>
+
+</html>

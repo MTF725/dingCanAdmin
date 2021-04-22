@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>机构管理</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+       #toolbar .toolbar-btn{display: none;}
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md2" style="overflow-y: auto;background: #fff;">
+                <div id="tree" class="layui-tree left-side-tree" style="border-right: 1px solid #eee;"></div>
+            </div>
+            <div class="layui-col-md10">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline">
+                                <label class="form-label">机构名称</label>
+                                <input type="text" autocomplete="off" class="layui-input" id="org">
+                            </div>
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>
+                        </form>
+                        <div id="toolbar" class="isAdmin">
+                            <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                            <a href="###" id="importBtn" class="toolbar-btn"  onclick="importBtn()">导入</a>
+                            <a href="###" id="exportBtn" class="toolbar-btn"  onclick="exportBtn()">导出</a>
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    var pId = ''; //父级id
+
+
+    $(function () {       
+        getTree();
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/dept/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                }
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-90, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) { //处理请求的数据
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                }
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'deptNo',
+                align: 'center',
+                title: '编号'
+            }, {
+                field: 'cName',
+                align: 'center',
+                title: '单位名称'
+            }, {
+                field: 'deptName',
+                align: 'center',
+                title: '名称'
+            }, {
+                field: 'deptType',
+                align: 'center',
+                title: '类型',
+                formatter: function (value, row, index) {
+                    if (value == 1) {
+                        return '院系'
+                    }
+                    if (value == 2) {
+                        return '专业'
+                    }
+                    if (value == 3) {
+                        return '班级'
+                    }
+                    if (value == 4) {
+                        return '机构'
+                    }
+                    if (value == 5) {
+                        return '校区'
+                    }
+                }
+            }, {
+                field: 'deptParentName',
+                align: 'center',
+                title: '上级机构',
+                formatter: function (value, row, index) {
+                    if (value) {
+                        return row.deptParentName
+                    } else {
+                        return row.cName
+                    }
+                }
+            }, {
+                field: 'deptContact',
+                align: 'center',
+                title: '负责人',
+            }, {
+                field: 'deptPhone',
+                align: 'center',
+                title: '联系电话',
+            }, {
+                field: 'deptRemark',
+                align: 'center',
+                title: '备注'
+            }],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('机构管理', data);
+                if (data.rows==0) {
+                    setTreeTableHeight(130);
+                }
+            },
+            //加载失败时执行
+            onLoadError: function () {
+               
+            },
+            onClickRow: function (row, $element) {}
+        });
+
+    });
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            keyword: $('#org').val(), //关键字
+            cId: pId?pId:setUnitId(),
+        };
+        return temp;
+    }
+
+    // 树形菜单
+    function getTree() {
+        $.ajax({
+            url: port + '/v1/dept/getTree',
+            xhrFields: {
+                withCredentials: true
+            },
+            type: 'get',
+            data:{
+                cId:localStorage.getItem('superAdmin')?'':localStorage.getItem('unitId')
+            },
+            success: function (e) {
+                console.log('树形菜单', e);
+                layui.tree.render({
+                    elem: '#tree', //绑定元素
+                    showLine: false, //是否开启连接线
+                    showCheckbox: false, //是否显示复选框
+                    onlyIconControl: true, //仅允许节点左侧图标控制展开收缩
+                    data: e.data,
+                    click: function (data) {
+                        pId = data.data.id;
+                        console.log(data.data.id); //得到当前点击的节点数据
+                        $('#table').bootstrapTable('refresh');
+                    }
+                });
+            }
+        });
+    }
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+    // 添加
+    function addBtn() {
+        
+        layer.open({
+            type: 1,
+            title: '添加',
+            area: ['600px', '450px'],
+            btn: ['确定', '取消'],
+            btnAlign: 'c',
+            success: function (layero, index) {
+
+
+                layui.form.render('select');
+                // 选择上级机构
+                layero.find('#upOrg').click(function (event) {
+                    layer.open({
+                        type: 1,
+                        title: '选择机构',
+                        area: ['300px', '500px'],
+                        // btn:['确定','取消'],
+                        btnAlign: 'c',
+                        success: function (layero1, index1) {
+                            $.ajax({
+                                url: port + '/v1/dept/getTree',
+                                xhrFields: {
+                                    withCredentials: true
+                                },
+                                type: 'get',
+                                data:{
+                                    cId:localStorage.getItem('superAdmin')?'':localStorage.getItem('unitId')
+                                },
+                                success: function (e) {
+                                    console.log('机构树', e)
+                                    layui.tree.render({
+                                        elem: layero1.find(
+                                            '#tree'), //绑定元素
+                                        showLine: false, //是否开启连接线
+                                        showCheckbox: false, //是否显示复选框
+                                        data: e.data,
+                                        click: function (e) {
+                                            console.log(e.data); //得到当前点击的节点数据
+                                            layero.find('#upOrg').attr({'value': e.data.title,'data-cid': e.data.cId});
+                                            if (e.data.kind ==0) {
+                                                pId = 0;
+                                            } else {
+                                                pId = e.data.id
+                                            }
+                                            layer.close(index1)
+                                        }
+                                    });
+                                }
+                            })
+                        },
+                        yes: function (index1, layero1) {
+
+                        },
+                        content: '<div id="tree"></div>',
+                    })
+                });
+            },
+            yes: function (index, layero) {
+
+                var uId = layero.find('#upOrg').attr('data-cid'); //单位id
+                var upOrg = layero.find('#upOrg').val(); //上级机构
+                var num = layero.find('#num').val(); //编号
+                var name = layero.find('#name').val(); //名称
+                var type = layero.find('#type').val(); //类型
+                var phone = layero.find('#phone').val(); //电话
+                var user = layero.find('#user').val(); //负责人
+                var remark = layero.find('#remark').val(); //备注
+
+                if (upOrg == '') {
+                    layer.msg('请选择上级');
+                    return;
+                }
+                if (name == '') {
+                    layer.msg('请输入名称');
+                    return;
+                }
+                if (type == '') {
+                    layer.msg('请选择类型');
+                    return;
+                }
+                if (!phongReg.test(phone) && phone != '') {
+                    layer.msg('电话格式错误');
+                    return;
+                }
+
+                $.ajax({
+                    url: port + '/v1/dept/insert',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cId: uId, //单位id
+                        deptParentId: pId, //上级机构id
+                        deptNo: num, //编号
+                        deptName: name, //名称
+                        deptType: type, //类型
+                        deptPhone: phone, //电话
+                        deptContact: user, //负责人
+                        deptRemark: remark, //备注
+                    },
+                    success: function (e) {
+                        console.log('添加', e)
+                        if (e.status == 200) {
+                            getTree()
+                            $('#table').bootstrapTable('refresh');
+                            layer.close(index);
+                            layer.msg('已添加');
+                        } else {
+                            layer.msg(e.data);
+                        }
+                    }
+                })
+            },
+            content: '<div class="layui-fluid form-layer layui-form">' +
+                '<div class="layui-row">' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>上级机构:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" readonly placeholder="点击此处选择上级" id="upOrg">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">编号:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="num">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>名称:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="name">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>类型:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="type">' +
+                '<option value=""></option>' +
+                '<option value="1">院系</option>' +
+                '<option value="2">专业</option>' +
+                '<option value="3">班级</option>' +
+                '<option value="4">机构</option>' +
+                '<option value="5">校区</option>' +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">电话:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="phone">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">负责人:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="user">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label">备注:</label>' +
+                '<div class="layui-input-block">' +
+                '<textarea class="layui-textarea" id="remark"></textarea>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div> '
+        });
+    }
+
+    // 修改
+    function editBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        console.log('修改', item[0]);
+        if (item.length == 1) {
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: ['600px', '450px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+                    layui.form.render('select');
+
+                    pId = item[0].deptParentId
+
+                    // 回显类型下拉
+                    layero.find('#type option').each(function (i, a) {
+                        if (item[0].deptType == $(a).attr('value')) {
+                            $(a).attr('selected', true);
+                            layui.form.render('select');
+                        }
+                    });
+
+                    // 选择上级机构
+                    layero.find('#upOrg').click(function (event) {
+                        layer.open({
+                            type: 1,
+                            title: '选择机构',
+                            area: ['300px', '500px'],
+                            // btn:['确定','取消'],
+                            btnAlign: 'c',
+                            success: function (layero1, index1) {
+                                $.ajax({
+                                    url: port + '/v1/dept/getTree',
+                                    xhrFields: {
+                                        withCredentials: true
+                                    },
+                                    type: 'get',
+                                    data:{
+                                        cId:localStorage.getItem('superAdmin')?'':localStorage.getItem('unitId')
+                                    },
+                                    success: function (e) {
+                                        console.log('机构树', e)
+                                        layui.tree.render({
+                                            elem: layero1.find(
+                                                '#tree'), //绑定元素
+                                            showLine: false, //是否开启连接线
+                                            showCheckbox: false, //是否显示复选框
+                                            data: e.data,
+                                            click: function (e) {
+                                                console.log(e
+                                                    .data
+                                                ); //得到当前点击的节点数据
+
+                                                layero.find(
+                                                    '#upOrg'
+                                                ).attr({
+                                                    'value': e
+                                                        .data
+                                                        .title,
+                                                });
+                                                if (e.data
+                                                    .kind == 0
+                                                ) {
+                                                    pId = 0;
+                                                } else {
+                                                    pId = e.data
+                                                        .id
+                                                }
+
+
+                                                layer.close(
+                                                    index1)
+                                            }
+                                        });
+                                    }
+                                })
+
+                            },
+                            yes: function (index1, layero1) {
+
+                            },
+                            content: '<div id="tree"></div>',
+                        })
+                    });
+                },
+                yes: function (index, layero) {
+                    var uId = layero.find('#upOrg').attr('data-cid'); //单位id
+                    var upOrg = layero.find('#upOrg').val(); //上级机构
+                    var num = layero.find('#num').val(); //编号
+                    var name = layero.find('#name').val(); //名称
+                    var type = layero.find('#type').val(); //类型
+                    var phone = layero.find('#phone').val(); //电话
+                    var user = layero.find('#user').val(); //负责人
+                    var remark = layero.find('#remark').val(); //备注
+
+                    if (upOrg == '') {
+                        layer.msg('请选择上级');
+                        return;
+                    }
+                    if (name == '') {
+                        layer.msg('请输入名称');
+                        return;
+                    }
+                    if (type == '') {
+                        layer.msg('请选择类型');
+                        return;
+                    }
+                    if (!phongReg.test(phone) && phone != '') {
+                        layer.msg('电话格式错误');
+                        return;
+                    }
+
+                    $.ajax({
+                        url: port + '/v1/dept/update',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            deptId: item[0].deptId, //部门id
+                            deptParentId: pId, //上级机构id
+                            deptNo: num, //编号
+                            deptName: name, //名称
+                            deptType: type, //类型
+                            deptPhone: phone, //电话
+                            deptContact: user, //负责人
+                            deptRemark: remark, //备注
+                            cId:item[0].cId
+                        },
+                        success: function (e) {
+                            console.log('修改', e)
+                            if (e.status == 200) {
+                                getTree()
+                                $('#table').bootstrapTable('refresh');
+                                layer.close(index);
+                                layer.msg('已修改');
+                            } else {
+                                layer.msg(e.data);
+                            }
+                        }
+                    })
+
+                },
+                content: '<div class="layui-fluid form-layer layui-form">' +
+                    '<div class="layui-row">' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>上级机构:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" readonly placeholder="点击此处选择上级" id="upOrg" value=' +
+                    (item[0].deptParentName ? item[0].deptParentName : item[0].cName) + ' data-pid=' + item[0]
+                    .deptParentId + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">编号:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="num" value=' + item[0]
+                    .deptNo + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>名称:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="name" value=' + item[0]
+                    .deptName + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>类型:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="type">' +
+                    '<option value=""></option>' +
+                    '<option value="1">院系</option>' +
+                    '<option value="2">专业</option>' +
+                    '<option value="3">班级</option>' +
+                    '<option value="4">机构</option>' +
+                    '<option value="5">校区</option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">电话:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="phone" value=' + item[0]
+                    .deptPhone + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">负责人:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="user" value=' + item[0]
+                    .deptContact + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label">备注:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<textarea class="layui-textarea" id="remark">' + item[0].deptRemark + '</textarea>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请选择单行数据')
+        }
+
+    }
+
+
+    // 删除
+    function delBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var delData = []; //要删除的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要删除的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                delData[i] = item[i].deptId;
+            }
+            console.log('删除', delData);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/dept/patchDelete',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'DELETE',
+                        data: {
+                            deptIds: delData
+                        },
+                        success: function (e) {
+                            console.log('删除', e)
+                            if (e.status == 200) {
+                                getTree()
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已删除');
+                                layer.close(index);
+                            }else{
+                                layer.msg(e.data);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+            });
+
+        }
+    }
+
+    // 导入
+    function importBtn() {
+        layer.open({
+            type: 1,
+            title: '导入',
+            area: ['380px', '250px'],
+            btn: ['导入', '取消'],
+            yes: function (index, layero) {
+                formData.append("cId",localStorage.getItem("unitId"))
+                $.ajax({
+                        url: port + '/v1/dept/import',
+                        xhrFields: {
+                            withCredentials: true
+                        },                   
+                        type: 'POST',
+                        async: false,
+                        data:formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (e) {
+                            console.log('导入', e);                                                   
+                            layer.open({
+                                type: 1,
+                                title: '提示',
+                                area: ['380px', '250px'],
+                                btn: ['关闭'],
+                                btnAlign: 'c',
+                                success:function(layero, index){      
+                                    $('#table').bootstrapTable('refresh');                              
+                                    if(e.errorDetails.length>0){
+                                        layero.find(".import-layer-errText").css("display","block");                                                                   
+                                    }
+                                },
+                                yes:function(layero, index){
+                                    layer.closeAll();
+                                },
+                                content: '<div class="layui-fluid import-layer ">'+
+                                            '<p class="import-layer-result">' +e.result+'</p>'+
+                                            '<p class="import-layer-errText" onclick="downloadErrMsg()"> 下载错误信息</p>'+
+                                         '</div>'
+                            })
+                        }
+                })  
+            },
+            btnAlign: 'c',
+            content: '<div class="layui-fluid import-layer">' +
+                '<div class="item">' +
+                '<label>模板:</label>' +
+                '<a href="###" class="down-module" onclick=downloadTemplate()>点击下载模板</a>' +
+                '</div>' +
+                '<div class="item">' +
+                '<label>选择文件:</label>' +
+                '<div class="choose-file">' +
+                '<p class="file-name"></p>' +
+                '<span>浏览<input type="file" onchange="importFile(this)" /></span>' +
+                '</div>' +
+                '</div>' +
+                '</div>'
+
+        });
+    }
+
+    //下载错误信息 
+    function downloadErrMsg(){
+        location.href=port+"/v1/dept/exportError";
+    }
+
+
+    //下载模板
+    function downloadTemplate(){
+        location.href="./templateExcel/机构信息.xlsx";
+    }
+
+    // 导入
+    function importFile(_this){
+        //清空formData
+        formData=null;
+        formData=new FormData; 
+        var fileName = window.event.target.files[0].name;         
+        formData.append("file",window.event.target.files[0])
+        $(_this).parent().siblings('.file-name').html(fileName)
+    }
+
+    //导出
+    function exportBtn(){         
+        location.href=port+"/v1/dept/export?cId="+localStorage.getItem("unitId")
+    }
+
+
+    //根据角色id，判断按钮显隐   
+    var btnGroupData = [
+        {btnName:"机构管理添加",btnDom:$("#addBtn")},
+        {btnName:"机构管理修改",btnDom:$("#editBtn")},
+        {btnName:"机构管理删除",btnDom:$("#delBtn")},
+        {btnName:"机构管理导入",btnDom:$("#importBtn")},
+        {btnName:"机构管理导出",btnDom:$("#exportBtn")},
+    ]
+    judgeBtnShow(btnGroupData)
+</script>
+
+</html>

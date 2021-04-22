@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>产品意见反馈</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <link rel="stylesheet" href="./iconfont/iconfont.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+         #toolbar .toolbar-btn{display: none;}
+         .gap-line{color: #e6e6e6;}
+         .layui-unit-box{display: none;}
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="tools">
+                                <div class="layui-input-inline isSuperAdmin">
+                                    <label class="form-label">单位名称</label>
+                                    <select id="unitName" lay-filter="unitName">
+                                        <option></option>
+                                    </select>
+                                </div>
+                                <div class="layui-input-inline">
+                                    <label class="form-label">单位区域</label>
+                                    <select id="unitArea" lay-filter="unitArea">
+                                        <option></option>
+                                    </select>
+                                </div>
+                                <div class="layui-input-inline">
+                                    <label class="form-label">店铺类型</label>
+                                    <select id="shopType" lay-filter="shopType">
+                                        <option></option>
+                                    </select>
+                                </div>
+                                <div class="layui-input-inline">
+                                    <label class="form-label">店铺名称</label>
+                                    <select id="shopName" lay-filter="shopName">
+                                        <option></option>
+                                    </select>
+                                </div>
+                                <div class="layui-input-inline">
+                                    <label class="form-label">店铺层数</label>
+                                    <select id="shopFloor" lay-filter="shopFloor">
+                                        <option></option>
+                                    </select>
+                                </div>
+                                <div class="layui-input-inline">
+                                    <label class="form-label">窗口号</label>
+                                    <select id="winNum">
+                                        <option></option>
+                                    </select>
+                                </div>
+                                <div class="layui-input-inline">
+                                    <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                                </div>  
+                                <div class="layui-input-inline more-btn-box">
+                                    <a class="more-btn" onclick="moreCheck()">更多条件<i class="iconfont iconxiala2"></i></a>
+                                </div>   
+                            </div>
+                            <div class="tools-group hidden-dom">                              
+                                <div class="layui-input-inline">
+                                    <label class="form-label">日期</label>
+                                    <input type="text" autocomplete="off" readonly class="layui-input" id="startTime">
+                                    <span class="gap-line">—</span>
+                                    <input type="text" autocomplete="off" readonly class="layui-input" id="endTime">
+                                </div>      
+                            </div>                                                                       
+                        </form>
+                     
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    $(function () {
+
+        unitList($('#unitName'), 'id'); //单位名称下拉
+        unitAreaList($('#unitArea'), 'id'); //单位区域下拉
+        shopTypeList($('#shopType')); //店铺类型下拉
+      
+        //开始日期
+        layui.laydate.render({
+            elem: '#startTime',
+            type: "date",
+            format: 'yyyy-MM-dd',          
+            done: function (value, date, endDate) {
+                var startTime = new Date(value).getTime();
+                var endTime = new Date($("#endTime").val()).getTime();
+                if (endTime < startTime) {
+                    layer.msg('开始时间不能大于结束时间');
+                    $('#startTime').val("");
+                }
+            }
+        });
+        //结束日期
+        layui.laydate.render({
+            elem: '#endTime',
+            type: "date",          
+            done: function (value, date, endDate) {
+                var endTime = new Date(value).getTime();
+                var startTime = new Date($("#startTime").val()).getTime();
+                if (endTime < startTime) {
+                    layer.msg('结束时间不能小于开始时间');
+                    $('#endTime').val("");
+                }
+            }
+        });
+
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/notice/queryFeedback',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-90, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) {                         
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'cName',
+                align: 'center',
+                title: '单位名称',
+            }, {
+                field: 'cAreaName',
+                align: 'center',
+                title: '单位区域',
+            }, {
+                field: 'shopTypeName',
+                align: 'center',
+                title: '店铺类型',
+            }, {
+                field: 'shopName',
+                align: 'center',
+                title: '店铺名称',
+            }, {
+                field: 'floorNum',
+                align: 'center',
+                title: '店铺层数',
+            }, {
+                field: 'winNo',
+                align: 'center',
+                title: '窗口号',
+            }, {
+                field: 'winName',
+                align: 'center',
+                title: '窗口名称',
+            }, {
+                field: 'sellerName',
+                align: 'center',
+                title: '商家姓名',
+            }, {
+                field: 'content',
+                align: 'center',
+                title: '公告内容',
+            }, {
+                field: 'remark',
+                align: 'center',
+                title: '操作',
+                events: operateEvents,
+                formatter: function (value, row, index) {
+                    var result =
+                        "<a href='javascript:;' class='info' style='color:#129CD6;'>详情</a>";
+                    return result;
+                }
+            }],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('审批记录', data);
+                if (data.rows==0) {
+                    setTreeTableHeight(130);
+                }
+            },
+            //加载失败时执行
+            onLoadError: function () {
+                
+            },
+            onClickRow: function (row, $element) {}
+        });
+
+    });
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            cId: setUnitId('#unitName'), //单位名称id
+            cAreaId: $('#unitArea').val(), //单位区域id
+            shopTypeId: $('#shopType').val(), //店铺类型id
+            shopId: $('#shopName').val(), //店铺名称          
+            floorNum: $('#shopFloor').val(), //窗口所在层
+            winId: $('#winNum').val(), //窗口号  
+            startDate : $('#startTime').val(), //起始日期      
+            endDate : $('#endTime').val(), //结束日期              
+        };
+        console.log(temp)
+        return temp;
+    }
+
+    //更多条件
+    function moreCheck(){
+            if($(".tools-group").hasClass("hidden-dom")){
+                $(".tools-group").removeClass("hidden-dom");
+                $(".more-btn").children("i").removeClass("iconxiala2");
+                $(".more-btn").children("i").addClass("iconshangla");
+                
+            }else{
+                $(".tools-group").addClass("hidden-dom");
+                $(".more-btn").children("i").removeClass("iconshangla");
+                $(".more-btn").children("i").addClass("iconxiala2");
+            }
+        }
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+    // 详情
+    window.operateEvents = {
+        'click .info': function (e, value, row, index) {
+            console.log('详情', row);
+            var passArr=[];
+            passArr.push(row.gId);
+            layer.open({
+                type: 1,
+                title: '详情',
+                area: ['520px', '310px'],
+                btn: ['关闭'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+                             
+                },             
+                content: '<div class="layui-fluid form-layer layui-form">' +
+                                '<table class="detail-table">' +
+                                    '<tr>' +
+                                        '<td>单位名称:</td>' +
+                                        '<td>'+isNull(row.cName)+'</td>' +
+                                        '<td>单位区域:</td>' +
+                                        '<td>'+isNull(row.cAreaName)+'</td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<td>店铺类型:</td>' +
+                                        '<td>' + isNull(row.shopTypeName) + '</td>' +
+                                        '<td>店铺名称:</td>' +
+                                        '<td>' + isNull(row.shopName) + '</td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<td>店铺层数:</td>' +
+                                        '<td>' + isNull(row.floorNum) + '</td>' +
+                                        '<td>窗口号:</td>' +
+                                        '<td>' + isNull(row.winNo) + '</td>' +
+                                    '</tr>' +
+                                    '<tr>' +
+                                        '<td>窗口名称:</td>' +
+                                        '<td>' + isNull(row.winName) + '</td>' +
+                                        '<td>商家姓名:</td>' +
+                                        '<td>' + isNull(row.sellerName) + '</td>' +
+                                    '</tr>' +                                   
+                                    '<tr>' +
+                                        '<td>反馈意见:</td>' +
+                                        '<td colspan="3">' + isNull(row.content)+ '</td>' +                                
+                                    '</tr>' +     
+                                    '<tr>' +
+                                        '<td >评价日期:</td>' +
+                                        '<td colspan="3">' +  isNull(row.createTime)+ '</td>' +                                        
+                                    '</tr>' +                                                                      
+                                '</table>' +                                                   
+                            '</div> '
+            });
+        }
+    };
+
+   //单位名称change时，根据选中的单位id级联查询单位区域
+   layui.form.on('select(unitName)', function (data) {
+        $('#unitArea').html('<option value=""></option>');
+        $('#shopType').val('');
+        $('#shopName').html('<option value=""></option>');
+        $('#shopFloor').html('<option value=""></option>');
+        $('#winNum').html('<option value=""></option>');
+        layui.form.render("select");
+        unitAreaList($('#unitArea'), 'id', data.value); //单位区域下拉
+    });
+
+    //单位区域change时，根据选中的单位id级联查询单位区域
+    layui.form.on('select(unitArea)', function (data) {
+        $('#shopType').val('');
+        $('#shopName').html('<option value=""></option>');
+        $('#shopFloor').html('<option value=""></option>');
+        $('#winNum').html('<option value=""></option>');
+        layui.form.render("select");
+    });
+
+    // 店铺类型change事件
+    layui.form.on('select(shopType)', function (e) {
+        $('#shopName').html('<option value=""></option>');
+        $('#shopFloor').html('<option value=""></option>');
+        $('#winNum').html('<option value=""></option>');
+        shopNameList($('#shopName'), 'id', $('#unitArea').val(), e.value);
+        layui.form.render("select");
+
+    });
+
+    // 店铺名称change事件
+    layui.form.on('select(shopName)', function (e) {
+        $('#shopFloor').html('<option value=""></option>');
+        $('#winNum').html('<option value=""></option>');
+        var floolNum = $('#shopName option:selected').attr('data-floor'); //获取选中的层数，来遍历下级的层数
+        for (var i = 0; i < floolNum; i++) {
+            $('#shopFloor').append('<option value=' + (i + 1) + '>' + (i + 1) + '</option>');
+        }
+        layui.form.render("select");
+
+    });
+
+    // 店铺层数change事件
+    layui.form.on('select(shopFloor)', function (e) {
+        console.log(e);
+        $('#winNum').html('<option value=""></option>');
+        winNumList($('#winNum'), 'id', $('#shopName').val(), e.value);
+        layui.form.render("select");
+    });
+     
+  
+</script>
+
+</html>

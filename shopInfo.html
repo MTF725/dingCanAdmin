@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>店铺信息</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+    .select-img{position: relative;}
+    .select-img input{position: absolute;width: 100%;height: 100%;left: 0;top: 0;opacity: 0;cursor: pointer;font-size: 0;}
+    #toolbar .toolbar-btn{display: none;}
+
+        
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline isSuperAdmin" id="unitNameWrap">
+                                <label class="form-label">单位名称</label>
+                                <select id="unitName" lay-filter="unitName">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">单位区域</label>
+                                <select id="unitArea">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">店铺类型</label>
+                                <select id="shopType">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">店铺名称</label>
+                                <input type="text" autocomplete="off" class="layui-input" id="shopName">
+                            </div>
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>
+                        </form>
+                        <div id="toolbar" class="isAdmin">
+                            <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                            <a href="###" id="importBtn" class="toolbar-btn"  onclick="importBtn()">导入</a>
+                            <a href="###" id="exportBtn" class="toolbar-btn"  onclick="exportBtn()">导出</a>
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    $(function () {
+        // 如果当前登录人事超级管理员才显示单位名称下拉
+        if (localStorage.getItem('unitId') == 0) {
+            $('#unitNameWrap').show();
+        }
+        unitList($('#unitName'), 'id'); //单位名称下拉
+        
+        if (!localStorage.getItem('superAdmin')) {
+            unitAreaList($('#unitArea'), 'id'); //单位区域下拉
+            shopTypeList($('#shopType')); //店铺类型下拉
+        }
+
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/shop/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-90, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) {
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'cName',
+                align: 'center',
+                title: '单位名称'
+            }, {
+                field: 'cAreaName',
+                align: 'center',
+                title: '单位区域'
+            }, {
+                field: 'shopName',
+                align: 'center',
+                title: '店铺名称'
+            }, {
+                field: 'shopTypeName',
+                align: 'center',
+                title: '店铺类型',
+            }, {
+                field: 'shopUseArea',
+                align: 'center',
+                title: '使用面积',
+            }, {
+                field: 'shopBuildArea',
+                align: 'center',
+                title: '建筑面积',
+            }, {
+                field: 'shopPhone',
+                align: 'center',
+                title: '负责人电话',
+            }, {
+                field: 'shopContacts',
+                align: 'center',
+                title: '负责人'
+            }, {
+                field: 'shopAddress',
+                align: 'center',
+                title: '地址'
+            }, {
+                field: 'name9',
+                align: 'center',
+                title: '操作',
+                events: operateEvents,
+                formatter: function (value, row, index) {
+                    var result =
+                        "<a href='javascript:;' class='info' style='color:#129CD6;'>详情</a>";
+                    return result;
+                }
+            }],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('店铺信息', data);
+                if (data.rows==0) {
+                    setTreeTableHeight(130);
+                }
+            },
+            //加载失败时执行
+            onLoadError: function () {
+                
+            },
+            onClickRow: function (row, $element) {}
+        });
+
+    });
+
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            cId:setUnitId('#unitName'),//单位id
+            cAreaId: $('#unitArea').val(), //单位区域id
+            typeId: $('#shopType').val(), //店铺类型id
+            keyword: $('#shopName').val(), //店铺名称
+        };
+        return temp;
+    }
+
+
+    //单位名称change时，根据选中的单位id级联查询单位区域
+    layui.form.on('select(unitName)', function (data) {
+        $('#unitArea').html('<option value=""></option>');
+        $('#shopType').html('<option value=""></option>');
+        layui.form.render("select");
+        if (data.value) {
+            shopTypeList($('#shopType'),data.value); //店铺类型下拉
+            unitAreaList($('#unitArea'), 'id', data.value); //单位区域下拉
+        }
+    });
+
+
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+    // 添加
+    function addBtn() {
+        layer.open({
+            type: 1,
+            title: '添加',
+            area: ['600px', '500px'],
+            btn: ['确定', '取消'],
+            btnAlign: 'c',
+            success: function (layero, index) {
+                // layui.form.render('select');
+
+                unitAreaList(layero.find('#unitArea'), 'id'); //单位区域下拉
+                shopTypeList(layero.find('#shopType')); //店铺类型下拉
+
+                // 投入使用日期
+                layui.laydate.render({
+                    elem: '#useTime',
+                    trigger: 'click',
+                    done: function (value, date, endDate) {
+                        console.log(value); //得到日期生成的值，如：2017-08-18
+                        layero.find('#useTime').attr('value', value);
+                    }
+                });
+
+                // 建设时间
+                layui.laydate.render({
+                    elem: '#buildTime',
+                    trigger: 'click',
+                    done: function (value, date, endDate) {
+                        console.log(value); //得到日期生成的值，如：2017-08-18
+                        layero.find('#buildTime').attr('value', value);
+                    }
+                });
+
+                layero.find('#selectImg').change(function(e) {
+                     var formData = new FormData;
+                    formData.append('file',e.target.files[0]);
+                    console.log(e.target.files[0]);
+                    $.ajax({
+                        url:port+'/v1/shop/upload',
+                        type:'post',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        cache: false, //// 不缓存
+                          processData: false, //不处理发送的数据
+                          contentType: false, //不设置Content-Type请求头
+                          data:formData,
+                        success:function(data){
+                            if (data.status==200) {
+                                layero.find('#shopImg').attr('src',port+data.data);
+                                layero.find('#shopImg').attr('data-img',data.data);
+                                layer.msg('已上传');
+                            }
+                            console.log('上传图片',data);
+                        }
+                    });
+                });
+            },
+            yes: function (index, layero) {
+
+                var unitArea = layero.find('#unitArea').val(); //单位区域id
+                var shopType = layero.find('#shopType').val(); //店铺类型
+                var shopName = layero.find('#shopName').val(); //店铺名称
+                var shopFloor = layero.find('#shopFloor').val(); //店铺层数
+                var useArea = layero.find('#useArea').val(); //使用面积
+                var buildArea = layero.find('#buildArea').val(); //建筑面积
+                var mPerson = layero.find('#mPerson').val(); //负责人
+                var useTime = layero.find('#useTime').val(); //投入使用时间
+                var phone = layero.find('#phone').val(); //电话
+                var buildTime = layero.find('#buildTime').val(); //建设时间
+                var address = layero.find('#address').val(); //地址
+                var remark = layero.find('#remark').val(); //备注
+                var shopImg = layero.find('#shopImg').attr('data-img'); //图片
+
+                if (unitArea == '') {
+                    layer.msg('请选择单位区域');
+                    return;
+                }
+                if (shopType == '') {
+                    layer.msg('请选择店铺类型');
+                    return;
+                }
+                if (shopName == '') {
+                    layer.msg('请输入店铺名称');
+                    return;
+                }
+                if (shopFloor == '') {
+                    layer.msg('请输入店铺层数');
+                    return;
+                }
+                if (!zzsReg.test(shopFloor)) {
+                    layer.msg('店铺层数须正整数');
+                    return;
+                }
+                if (useArea != '' && !zsReg.test(useArea)) {
+                    layer.msg('使用面积必须是正数');
+                    return;
+                }
+                if (buildArea != '' && !zsReg.test(buildArea)) {
+                    layer.msg('建筑面积必须是正数');
+                    return;
+                }
+                if (phone != '' && !phongReg.test(phone)) {
+                    layer.msg('电话格式错误');
+                    return;
+                }
+                if (address == '') {
+                    layer.msg('请输入地址');
+                    return;
+                }
+
+                $.ajax({
+                    url: port + '/v1/shop/insert',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cAreaId: unitArea, //单位区域id
+                        cId: localStorage.getItem('unitId'), //单位id
+                        shopAddress: address, //地址
+                        shopBuildArea: buildArea, //建筑面积
+                        shopConstructDate: buildTime, //建设时间
+                        shopContacts: mPerson, //负责人
+                        shopFloorCount: shopFloor, //层数
+                        shopName: shopName, //店铺名称
+                        shopPhone: phone, //电话
+                        shopRemark: remark, //备注
+                        shopTypeId: shopType, //店铺类型
+                        shopUseArea: useArea, //使用面积
+                        shopUseDate: useTime, //投入使用时间
+                        shopPic:shopImg,//店铺图片
+                    },
+                    success: function (e) {
+                        console.log('添加', e);
+                        if (e.status == 200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已添加');
+                            layer.close(index);
+                        } else {
+                            layer.msg(e.msg);
+                        }
+                    }
+                });
+            },
+            content: '<div class="layui-fluid form-layer layui-form">' +
+                '<div class="layui-row">' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">单位名称:</label>' +
+                '<div class="layui-input-block">' +
+                '<input readonly type="text" autocomplete="off" class="layui-input" id="unitName" value=' +
+                localStorage.getItem('unitName') + ' data-id=' + localStorage.getItem('unitId') + '>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>单位区域:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="unitArea">' +
+                '<option></option>' +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>店铺类型:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="shopType">' +
+                '<option></option>' +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>店铺名称:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="shopName">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>店铺层数:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="number" autocomplete="off" class="layui-input" id="shopFloor">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">使用面积(㎡):</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="number" autocomplete="off" class="layui-input" id="useArea">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">建筑面积(㎡):</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="number" autocomplete="off" class="layui-input" id="buildArea">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">负责人:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="mPerson">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">投入使用时间:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" readonly autocomplete="off" class="layui-input" id="useTime">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">负责人电话:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="number" autocomplete="off" class="layui-input" id="phone">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">建设时间:</label>' +
+                '<div class="layui-input-block">' +
+                '<input readonly type="text" autocomplete="off" class="layui-input" id="buildTime">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>地址:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="address">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12" style="margin-bottom:5px;">' +
+                '<label class="layui-form-label">店铺图片:</label>' +
+                '<div class="layui-input-block">' +
+                '<img width="100" height="100" id="shopImg" data-img="" />' +
+                '<a class="layui-btn layui-btn-normal select-img" style="margin-left:10px;"><input type="file" id="selectImg" />选择图片</a>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label">备注:</label>' +
+                '<div class="layui-input-block">' +
+                '<textarea class="layui-textarea" id="remark"></textarea>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div> '
+
+        });
+    }
+
+    // 修改
+    function editBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        console.log('修改', item[0]);
+        if (item.length == 1) {
+            if(!item[0].shopUseDate){
+                item[0].shopUseDate='';
+            }
+             if(!item[0].shopConstructDate){
+                item[0].shopConstructDate='';
+            }
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: ['600px', '500px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                    unitAreaList(layero.find('#unitArea'), 'id'); //单位区域下拉
+                    shopTypeList(layero.find('#shopType')); //店铺类型下拉
+
+                    // 回显单位区域下拉
+                    layero.find('#unitArea option').each(function (i, a) {
+                        if (item[0].cAreaName == $(a).html()) {
+                            $(a).attr('selected', true);
+                            layui.form.render('select');
+                        }
+                    });
+
+                    // 回显店铺类型下拉
+                    layero.find('#shopType option').each(function (i, a) {
+                        if (item[0].shopTypeId == $(a).val()) {
+                            $(a).attr('selected', true);
+                            layui.form.render('select');
+                        }
+                    });
+
+                    // 投入使用日期
+                    layui.laydate.render({
+                        elem: '#useTime',
+                        trigger: 'click',
+                        done: function (value, date, endDate) {
+                            console.log(value); //得到日期生成的值，如：2017-08-18
+                            layero.find('#useTime').attr('value', value);
+                        }
+                    });
+
+                    // 建设时间
+                    layui.laydate.render({
+                        elem: '#buildTime',
+                        trigger: 'click',
+                        done: function (value, date, endDate) {
+                            console.log(value); //得到日期生成的值，如：2017-08-18
+                            layero.find('#buildTime').attr('value', value);
+                        }
+                    });
+
+                    layero.find('#selectImg').change(function(e) {
+                         var formData = new FormData;
+                        formData.append('file',e.target.files[0]);
+                        console.log(e.target.files[0]);
+                        $.ajax({
+                            url:port+'/v1/shop/upload',
+                            type:'post',
+                            xhrFields: {
+                                withCredentials: true
+                            },
+                            cache: false, //// 不缓存
+                              processData: false, //不处理发送的数据
+                              contentType: false, //不设置Content-Type请求头
+                              data:formData,
+                            success:function(data){
+                                if (data.status==200) {
+                                    layero.find('#shopImg').attr('src',port+data.data);
+                                    layero.find('#shopImg').attr('data-img',data.data);
+                                    layer.msg('已上传');
+                                }
+                                console.log('上传图片',data);
+                            }
+                        });
+                    });
+                },
+                yes: function (index, layero) {
+
+                    var unitArea = layero.find('#unitArea').val(); //单位区域id
+                    var shopType = layero.find('#shopType').val(); //店铺类型
+                    var shopName = layero.find('#shopName').val(); //店铺名称
+                    var shopFloor = layero.find('#shopFloor').val(); //店铺层数
+                    var useArea = layero.find('#useArea').val(); //使用面积
+                    var buildArea = layero.find('#buildArea').val(); //建筑面积
+                    var mPerson = layero.find('#mPerson').val(); //负责人
+                    var useTime = layero.find('#useTime').val(); //投入使用时间
+                    var phone = layero.find('#phone').val(); //电话
+                    var buildTime = layero.find('#buildTime').val(); //建设时间
+                    var address = layero.find('#address').val(); //地址
+                    var remark = layero.find('#remark').val(); //备注
+                    var shopImg = layero.find('#shopImg').attr('data-img'); //图片
+
+                    if (unitArea == '') {
+                        layer.msg('请选择单位区域');
+                        return;
+                    }
+                    if (shopType == '') {
+                        layer.msg('请选择店铺类型');
+                        return;
+                    }
+                    if (shopName == '') {
+                        layer.msg('请输入店铺名称');
+                        return;
+                    }
+                    if (shopFloor == '') {
+                        layer.msg('请输入店铺层数');
+                        return;
+                    }
+                    if (!zzsReg.test(shopFloor)) {
+                        layer.msg('店铺层数须正整数');
+                        return;
+                    }
+                    if (useArea != '' && !zsReg.test(useArea)) {
+                        layer.msg('使用面积必须是正数');
+                        return;
+                    }
+                    if (buildArea != '' && !zsReg.test(buildArea)) {
+                        layer.msg('建筑面积必须是正数');
+                        return;
+                    }
+                    if (phone != '' && !phongReg.test(phone)) {
+                        layer.msg('电话格式错误');
+                        return;
+                    }
+                    if (address == '') {
+                        layer.msg('请输入地址');
+                        return;
+                    }
+
+                    $.ajax({
+                        url: port + '/v1/shop/update',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            shopId: item[0].shopId, //商铺id
+                            cAreaId: unitArea, //单位区域id
+                            cId: localStorage.getItem('unitId'), //单位id
+                            shopAddress: address, //地址
+                            shopBuildArea: buildArea, //建筑面积
+                            shopConstructDate: buildTime, //建设时间
+                            shopContacts: mPerson, //负责人
+                            shopFloorCount: shopFloor, //层数
+                            shopName: shopName, //店铺名称
+                            shopPhone: phone, //电话
+                            shopRemark: remark, //备注
+                            shopTypeId: shopType, //店铺类型
+                            shopUseArea: useArea, //使用面积
+                            shopUseDate: useTime, //投入使用时间
+                            shopPic:shopImg,//店铺图片
+                        },
+                        success: function (e) {
+                            console.log('修改', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已修改');
+                                layer.close(index);
+                            } else {
+                                layer.msg(e.data);
+                            }
+                        }
+                    });
+                },
+                content: '<div class="layui-fluid form-layer layui-form">' +
+                    '<div class="layui-row">' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">单位名称:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input readonly type="text" autocomplete="off" class="layui-input" id="unitName" value=' +
+                    localStorage.getItem('unitName') + ' data-id=' + localStorage.getItem('unitId') + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>单位区域:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="unitArea">' +
+                    '<option></option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>店铺类型:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="shopType">' +
+                    '<option></option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>店铺名称:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="shopName" value=' + item[0]
+                    .shopName + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>店铺层数:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="number" autocomplete="off" class="layui-input" id="shopFloor" value=' + item[
+                        0].shopFloorCount + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">使用面积(㎡):</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="number" autocomplete="off" class="layui-input" id="useArea" value=' + item[0]
+                    .shopUseArea + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">建筑面积(㎡):</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="number" autocomplete="off" class="layui-input" id="buildArea" value=' + item[
+                        0].shopBuildArea + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">负责人:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="mPerson" value=' + item[0]
+                    .shopContacts + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">投入使用时间:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" readonly autocomplete="off" class="layui-input" id="useTime" value=' +
+                    item[0].shopUseDate + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">负责人电话:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="number" autocomplete="off" class="layui-input" id="phone" value=' + item[0]
+                    .shopPhone + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">建设时间:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input readonly type="text" autocomplete="off" class="layui-input" id="buildTime" value=' +
+                    item[0].shopConstructDate + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>地址:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="address" value=' + item[0]
+                    .shopAddress + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12" style="margin-bottom:5px;">' +
+                '<label class="layui-form-label">店铺图片:</label>' +
+                '<div class="layui-input-block">' +
+                '<img width="100" height="100" id="shopImg" data-img="'+item[0].shopPic+'" src="'+port+item[0].shopPic+'"/>' +
+                '<a class="layui-btn layui-btn-normal select-img" style="margin-left:10px;"><input type="file" id="selectImg" />选择图片</a>' +
+                '</div>' +
+                '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label">备注:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<textarea class="layui-textarea" id="remark">' + item[0].shopRemark + '</textarea>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请选择单行数据')
+        }
+
+    }
+
+
+    // 删除
+    function delBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var delData = []; //要删除的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要删除的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                delData[i] = item[i].shopId;
+            }
+            console.log('删除', delData);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/shop/patchDelete',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'DELETE',
+                        data: {
+                            shopIds: delData
+                        },
+                        success: function (e) {
+                            console.log('删除', e);
+                            if (e.status == 200) {
+                                if (e.data.sucCount==0) {
+                                    layer.msg('删除失败'+e.data.failCount+'条，失败原因：店铺被占用');
+                                }else{
+                                     layer.msg('删除成功'+e.data.sucCount+'条');
+                                }
+                                $('#table').bootstrapTable('refresh');
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+            });
+
+        }
+    }
+
+    // 详情
+    window.operateEvents = {
+        'click .info': function (e, value, row, index) {
+            console.log('详情', row);
+            layer.open({
+                type: 1,
+                title: '详情',
+                area: ['500px', '400px'],
+                btn: ['关闭'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                },
+                yes: function (index, layero) {
+                    layer.close(index);
+                },
+                content: '<div class="layui-fluid form-layer">' +
+                    '<table class="detail-table">' +
+                    '<tr>' +
+                    '<td>单位名称:</td>' +
+                    '<td>' + isNull(row.cName) + '</td>' +
+                    '<td>单位区域:</td>' +
+                    '<td>' + isNull(row.cAreaName) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>店铺类型:</td>' +
+                    '<td>' + isNull(row.shopTypeName) + '</td>' +
+                    '<td>店铺名称:</td>' +
+                    '<td>' + isNull(row.shopName) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>店铺层数:</td>' +
+                    '<td>' + isNull(row.shopFloorCount) + '</td>' +
+                    '<td>使用面积:</td>' +
+                    '<td>' + isNull(row.shopUseArea) + '㎡</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>建筑面积:</td>' +
+                    '<td>' + isNull(row.shopBuildArea) + '㎡</td>' +
+                    '<td>负责人:</td>' +
+                    '<td>' + isNull(row.shopContacts) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>投入使用时间:</td>' +
+                    '<td>' + isNull(row.shopUseDate) + '</td>' +
+                    '<td>负责人电话:</td>' +
+                    '<td>' + isNull(row.shopPhone) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>建设时间:</td>' +
+                    '<td>' + isNull(row.shopConstructDate) + '</td>' +
+                    '<td>地址:</td>' +
+                    '<td>' + isNull(row.shopAddress) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>备注:</td>' +
+                    '<td colspan="3">' + isNull(row.shopRemark) + '</td>' +
+                    '</tr>' +
+                    '<td>图片:</td>' +
+                    '<td colspan="3"><img width="100" height="100" id="shopImg" data-img="" src="'+port+row.shopPic+'"/></td>' +
+                    '</tr>' +
+                    '</table>' +
+                    '</div> '
+
+            });
+        }
+    };
+
+   //根据角色id，判断按钮显隐   
+   var btnGroupData = [
+        {btnName:"店铺信息添加",btnDom:$("#addBtn")},
+        {btnName:"店铺信息修改",btnDom:$("#editBtn")},
+        {btnName:"店铺信息删除",btnDom:$("#delBtn")}
+       
+    ]
+    judgeBtnShow(btnGroupData)
+</script>
+
+</html>

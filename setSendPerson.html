@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>配置配送员</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+        #sendPersonList li {margin-bottom: 10px;}
+        #toolbar .toolbar-btn{display: none;}
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md2" style="overflow-y: auto;background: #fff;">
+                <div id="tree" class="layui-tree left-side-tree" style="border-right: 1px solid #eee;"></div>
+            </div>
+            <div class="layui-col-md10">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <div id="toolbar" class="isAdmin">
+                            <a href="###" id="batchSet" class="toolbar-btn" onclick="batchSet()">批量配置</a>
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    var unitId = ''; //单位id
+    var unitAreaId = ''; //单位区域id
+    var sId = ''; //配送区域id
+    var buildId = ''; //建筑id
+
+    var sendPersonId=[];//勾选的配送人员id
+    var sendPersonName=[];//勾选的配送人员姓名
+
+    $(function () {
+        unitList($('#unitName'), 'id'); //单位名称下拉
+        unitAreaList($('#unitArea'), 'id'); //单位区域下拉
+        getTree();
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/deliveryRelation/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-50, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) {
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'buildNo',
+                align: 'center',
+                title: '编号'
+            },  {
+                field: 'cName',
+                align: 'center',
+                title: '单位名称',
+            },{
+                field: 'cAreaName',
+                align: 'center',
+                title: '单位区域',
+            }, {
+                field: 'dAreaName',
+                align: 'center',
+                title: '配送区域',
+            },{
+                field: 'buildName',
+                align: 'center',
+                title: '建筑名称'
+            }, {
+                field: 'dPersonNameGroup',
+                align: 'center',
+                title: '配送员',
+            }, ],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('配置配送员', data);
+                if (data.rows==0) {
+                    setTreeTableHeight(90);
+                }
+            },
+            //加载失败时执行
+            onLoadError: function () {
+               
+            },
+            onClickRow: function (row, $element) {}
+        });
+
+    });
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            cId: setUnitId(), //单位id
+            cAreaId: unitAreaId, //单位区域id
+            dAreaId: sId, //配送区域id
+            buildId: buildId, //建筑id
+        };
+        return temp;
+    }
+
+    // 树形菜单
+    function getTree() {
+        $.ajax({
+            url: port + '/v1/deliveryRelation/getTree',
+            xhrFields: {
+                withCredentials: true
+            },
+            type: 'get',
+            data:{
+                    cId:localStorage.getItem('superAdmin')?'':localStorage.getItem('unitId')
+            },
+            success: function (e) {
+                console.log('树形菜单', e);
+                layui.tree.render({
+                    elem: '#tree', //绑定元素
+                    showLine: false, //是否开启连接线
+                    showCheckbox: false, //是否显示复选框
+                    onlyIconControl: true, //仅允许节点左侧图标控制展开收缩
+                    data: e.data,
+                    click: function (data) {
+                        console.log(data.data); //得到当前点击的节点数据
+                        if (data.data.kind == 0) {
+                            unitId = data.data.id;
+                            unitAreaId = '';
+                            sId = '';
+                            buildId = '';
+                            $('#table').bootstrapTable('refresh');
+                        }
+                        if (data.data.kind == 1) {
+                            unitId = '';
+                            unitAreaId = data.data.id;
+                            sId = '';
+                            buildId = '';
+                            $('#table').bootstrapTable('refresh');
+                        }
+                        if (data.data.kind == 2) {
+                            unitId = '';
+                            unitAreaId = '';
+                            sId = data.data.id;
+                            buildId = '';
+                            $('#table').bootstrapTable('refresh');
+                        }
+                        if (data.data.kind == 3) {
+                            unitId = '';
+                            unitAreaId = '';
+                            sId = '';
+                            buildId = data.data.id;
+                            $('#table').bootstrapTable('refresh');
+                        }
+
+                    }
+                });
+            }
+        });
+    }
+
+
+    //单位名称change时，根据选中的单位id级联查询单位区域
+    layui.form.on('select(unitName)', function (data) {
+        $('#unitArea').html('<option value=""></option>');
+        layui.form.render("select");
+        unitAreaList($('#unitArea'), 'id', data.value); //单位区域下拉
+    });
+
+
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+
+    // 批量配置
+    function batchSet() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var arr = []; //要配置的数据
+
+        if (item.length == 0) {
+            layer.msg('请勾选配置区域');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                arr[i] = item[i].buildId;
+            }
+            console.log('配置', arr);
+            layer.open({
+                type: 1,
+                title: '配置',
+                area: ['400px', '350px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                    var sendPersonData = []; //配送人员
+                    unitAreaList(layero.find('#unitArea'), 'id'); //单位区域下拉
+
+                    //单位区域change，级联查询配送人员
+                    layui.form.on('select(unitArea)', function (data) {
+                        sendPersonData = sendPersonList(data.value);
+                    });
+
+
+
+                    // 点击选择配送员弹出配送员弹窗
+                    layero.find('#sendPerson').click(function (event) {
+                        if (layero.find('#unitArea').val() == '') {
+                            layer.msg('请选择单位区域');
+                            return;
+                        }
+
+                        // console.log(sendPersonData);
+
+                        // 设置选择的区域id，用语选择配送员时传入区域id
+                        sessionStorage.setItem('setPersonAreaId', layero.find('#unitArea').val());
+
+                        layer.open({
+                            type: 2,
+                            title: '选择配送员',
+                            area: ['900px', '500px'],
+                            btn: ['确定', '取消'],
+                            btnAlign: 'c',
+                            content:'setSendPersonIframeAdd.html',
+                            success: function(layero1, index1){
+                                
+                              },
+                              yes: function(index1, layero1){
+                                // 勾选的所有数据
+                                sendPersonId=[];//勾选的配送人员id清空
+                                sendPersonName=[];//勾选的配送人员姓名清空
+                                var selectData=window[layero1.find('iframe')[0]['name']].getSelectData();
+                                console.log(selectData);
+                                if (selectData.length==0) {
+                                    layer.msg('请选择配送人员');
+                                    return;
+                                }
+
+                                for (var i = 0; i < selectData.length; i++) {
+                                    sendPersonId.push(selectData[i].deliveryPersonId);
+                                    sendPersonName.push(selectData[i].deliveryPersonName);
+                                }
+
+                                console.log(sendPersonId,sendPersonName);
+
+                                layero.find('#sendPerson').html(sendPersonName.toString());
+                                layero.find('#sendPerson').attr('data-id',sendPersonId.toString());
+
+                                layer.close(index1); //如果设定了yes回调，需进行手工关闭
+                              }
+                        });
+
+                    });
+                },
+                yes: function (index, layero) {
+                    var unitArea = layero.find('#unitArea').val(); //单位区域
+                    var sendPerson = layero.find('#sendPerson').val(); //配送人员
+
+                    if (unitArea == '') {
+                        layer.msg('请选择单位区域');
+                        return;
+                    }
+                    if (sendPerson == '') {
+                        layer.msg('请选择配送人员');
+                        return;
+                    }
+
+                    var idArr = layero.find('#sendPerson').attr('data-id').split(','); //勾选的人员id数组
+
+                    $.ajax({
+                        url: port + '/v1/deliveryRelation/config',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            buildIds: arr, //建筑Id数组集
+                            cId: localStorage.getItem('unitId'), //单位id
+                            dPersonIds: idArr, //配送员Id数组集
+                        },
+                        success: function (e) {
+                            console.log('批量配置', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.close(index);
+                                layer.msg('操作成功');
+                            }
+                        }
+                    });
+
+                },
+                content: '<div class="layui-fluid form-layer layui-form">' +
+                    '<div class="layui-row">' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>单位名称:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input readonly type="text" autocomplete="off" class="layui-input" value=' + localStorage
+                    .getItem('unitName') + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>单位区域:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="unitArea" lay-filter="unitArea">' +
+                    '<option></option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>配送员:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<textarea readonly placeholder="点击选择配送员" class="layui-textarea" id="sendPerson"></textarea>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div> '
+
+            });
+
+
+
+        }
+    }
+
+    //根据角色id，判断按钮显隐   
+    var btnGroupData = [
+        {btnName:"批量配置",btnDom:$("#batchSet")},        
+    ]
+    judgeBtnShow(btnGroupData)
+
+</script>
+
+</html>

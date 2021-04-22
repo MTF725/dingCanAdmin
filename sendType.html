@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>配送类型</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <div id="toolbar" class="isAdmin">
+                            <a href="###" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    $(function () {
+
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/deliveryType/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-50, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) {
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'deliveryTypeNo',
+                align: 'center',
+                title: '编号'
+            }, {
+                field: 'deliveryTypeName',
+                align: 'center',
+                title: '配送类型名称'
+            }, {
+                field: 'deliveryTypeRemark',
+                align: 'center',
+                title: '备注',
+            }],
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('配送类型', data);
+                
+            },
+            //加载失败时执行
+            onLoadError: function () {
+                
+            },
+            onClickRow: function (row, $element) {}
+        });
+
+    });
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            cId:setUnitId(),
+        };
+        return temp;
+    }
+
+    // 添加
+    function addBtn() {
+        layer.open({
+            type: 1,
+            title: '添加',
+            area: ['400px', '300px'],
+            btn: ['确定', '取消'],
+            btnAlign: 'c',
+            success: function (layero, index) {
+
+            },
+            yes: function (index, layero) {
+                var num = layero.find('#num').val(); //编号
+                var type = layero.find('#type').val(); //配送类型
+                var remark = layero.find('#remark').val(); //备注
+
+                if (type == '') {
+                    layer.msg('请输入配送类型');
+                    return;
+                }
+
+                $.ajax({
+                    url: port + '/v1/deliveryType/insert',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cId: localStorage.getItem('unitId'), //单位id
+                        deliveryTypeNo: num, //编号
+                        deliveryTypeName: type, //配送类型
+                        deliveryTypeRemark: remark, //备注
+                    },
+                    success: function (e) {
+                        console.log('添加', e);
+                        if (e.status == 200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已添加');
+                            layer.close(index);
+                        } else {
+                            layer.msg(e.msg);
+                        }
+                    }
+                });
+
+            },
+            content: '<div class="layui-fluid form-layer layui-form layui-form">' +
+                '<div class="layui-row">' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label">编号:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="num">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>配送类型名称:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="type">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label">备注:</label>' +
+                '<div class="layui-input-block">' +
+                '<textarea class="layui-textarea" id="remark"></textarea>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div> '
+
+        });
+    }
+
+    // 修改
+    function editBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        console.log('修改', item[0]);
+        if (item.length == 1) {
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: ['400px', '300px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                },
+                yes: function (index, layero) {
+                    var num = layero.find('#num').val(); //编号
+                    var type = layero.find('#type').val(); //配送类型
+                    var remark = layero.find('#remark').val(); //备注
+
+                    if (type == '') {
+                        layer.msg('请输入配送类型');
+                        return;
+                    }
+
+                    $.ajax({
+                        url: port + '/v1/deliveryType/update',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            deliveryTypeId: item[0].deliveryTypeId, //配送类型id
+                            deliveryTypeNo: num, //编号
+                            deliveryTypeName: type, //配送类型
+                            deliveryTypeRemark: remark, //备注
+                        },
+                        success: function (e) {
+                            console.log('修改', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已修改');
+                                layer.close(index);
+                            } else {
+                                layer.msg(e.msg);
+                            }
+                        }
+                    });
+
+                },
+                content: '<div class="layui-fluid form-layer layui-form layui-form">' +
+                    '<div class="layui-row">' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label">编号:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="num" value=' + item[0]
+                    .deliveryTypeNo + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>配送类型名称:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="type" value=' + item[0]
+                    .deliveryTypeName + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label">备注:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<textarea class="layui-textarea" id="remark">' + item[0].deliveryTypeRemark +
+                    '</textarea>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请选择单行数据')
+        }
+
+    }
+
+
+    // 删除
+    function delBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var delData = []; //要删除的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要删除的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                delData[i] = item[i].deliveryTypeId;
+            }
+            console.log('删除', delData);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/deliveryType/patchDelete',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'DELETE',
+                        data: {
+                            dTypeIds: delData
+                        },
+                        success: function (e) {
+                            console.log('删除', e)
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已删除');
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+            });
+
+        }
+    }
+</script>
+
+</html>

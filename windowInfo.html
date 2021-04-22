@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>窗口信息</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+        #toolbar .toolbar-btn{display: none;}
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline isSuperAdmin">
+                                <label class="form-label">单位名称</label>
+                                <select id="unitName" lay-filter="unitName">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">单位区域</label>
+                                <select id="unitArea" lay-filter="unitArea">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">店铺类型</label>
+                                <select id="shopType" lay-filter="shopType">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">店铺名称</label>
+                                <select id="shopName" lay-filter="shopName">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">店铺层数</label>
+                                <select id="shopFloor">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">窗口名称</label>
+                                <input type="text" autocomplete="off" class="layui-input" id="winName">
+                            </div>
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>
+                        </form>
+                        <div id="toolbar" class="isAdmin">
+                            <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>                         
+                            <a href="###" id="printEwm" class="toolbar-btn" onclick="printEwm()">打印二维码</a>
+                            <a href="###" id="startSell" class="toolbar-btn" onclick="startSell()">营业</a>
+                            <a href="###" id="stopSell" class="toolbar-btn" onclick="stopSell()">停业</a>
+                            <a href="###" id="importBtn" class="toolbar-btn"  onclick="importBtn()">导入</a>
+                            <a href="###" id="exportBtn" class="toolbar-btn"  onclick="exportBtn()">导出</a>
+                            <!-- <a href="###" class="toolbar-btn" onclick="exportEwm()">导出二维码</a> -->                
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/jquery.PrintArea.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    $(function () {
+
+        unitList($('#unitName'), 'id'); //单位名称下拉
+
+        if (!localStorage.getItem('superAdmin')) {
+            unitAreaList($('#unitArea'), 'id'); //单位区域下拉
+            shopTypeList($('#shopType')); //店铺类型下拉
+        }
+
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/window/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-90, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) {
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'cName',
+                align: 'center',
+                title: '单位名称'
+            }, {
+                field: 'cAreaName',
+                align: 'center',
+                title: '单位区域'
+            }, {
+                field: 'shopTypeName',
+                align: 'center',
+                title: '店铺类型',
+            }, {
+                field: 'shopName',
+                align: 'center',
+                title: '店铺名称',
+            }, {
+                field: 'winFloorNum',
+                align: 'center',
+                title: '店铺层数',
+            }, {
+                field: 'winNo',
+                align: 'center',
+                title: '窗口号',
+            }, {
+                field: 'winName',
+                align: 'center',
+                title: '窗口名称'
+            }, {
+                field: 'winAddress',
+                align: 'center',
+                title: '窗口地址'
+            },{
+                field: 'winState',
+                align: 'center',
+                title: '窗口状态',
+                formatter: function (value, row, index) {
+                    if (value==0) {
+                        return '营业';
+                    }
+                    if (value==1) {
+                        return '停业';
+                    }
+                }
+            }, {
+                field: 'name9',
+                align: 'center',
+                title: '操作',
+                events: operateEvents,
+                formatter: function (value, row, index) {
+                    var result =
+                        "<a href='javascript:;' class='info' style='color:#129CD6;'>详情</a>";
+                    return result;
+                }
+            }],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('窗口信息', data);
+                if (data.rows==0) {
+                    setTreeTableHeight(130);
+                }
+            },
+            //加载失败时执行
+            onLoadError: function () {
+               
+            },
+            onClickRow: function (row, $element) {}
+        });
+
+    });
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            cId: setUnitId('#unitName'), //单位id
+            cAreaId: $('#unitArea').val(), //单位区域id
+            shopId: $('#shopName').val(), //店铺id
+            floorNum: $('#shopFloor').val(), //所在层
+            keyword: $('#winName').val(), //窗口名称
+            shopTypeId: $('#shopType').val(), //店铺类型
+        };
+        return temp;
+    }
+
+
+    //单位名称change时，根据选中的单位id级联查询单位区域
+    layui.form.on('select(unitName)', function (data) {
+        $('#unitArea').html('<option value=""></option>');
+        $('#shopType').html('<option value=""></option>');
+        $('#shopName').html('<option value=""></option>');
+        $('#shopFloor').html('<option value=""></option>');
+        layui.form.render("select");
+        if (data.value) {
+            unitAreaList($('#unitArea'), 'id', data.value); //单位区域下拉
+            shopTypeList($('#shopType'),data.value); //店铺类型下拉
+        }
+        
+    });
+
+    //单位区域change时，根据选中的单位id级联查询单位区域
+    layui.form.on('select(unitArea)', function (data) {
+        $('#shopType').val('');
+        $('#shopName').html('<option value=""></option>');
+        $('#shopFloor').html('<option value=""></option>');
+        layui.form.render("select");
+    });
+
+    // 店铺类型change事件
+    layui.form.on('select(shopType)', function (e) {
+        $('#shopName').html('<option value=""></option>');
+        $('#shopFloor').html('<option value=""></option>');
+        shopNameList($('#shopName'), 'id', $('#unitArea').val(), e.value);
+        layui.form.render("select");
+
+    });
+
+    // 店铺名称change事件
+    layui.form.on('select(shopName)', function (e) {
+        $('#shopFloor').html('<option value=""></option>');
+        var floolNum = $('#shopName option:selected').attr('data-floor'); //获取选中的层数，来遍历下级的层数
+        for (var i = 0; i < floolNum; i++) {
+            $('#shopFloor').append('<option value=' + (i + 1) + '>' + (i + 1) + '</option>');
+        }
+        layui.form.render("select");
+    });
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+    // 添加
+    function addBtn() {
+        layer.open({
+            type: 1,
+            title: '添加',
+            area: ['600px', '500px'],
+            btn: ['确定', '取消'],
+            btnAlign: 'c',
+            success: function (layero, index) {
+
+                unitAreaList(layero.find('#unitArea'), 'id'); //单位区域下拉
+                shopTypeList(layero.find('#shopType')); //店铺类型下拉
+
+                // 获取窗口id
+                $.ajax({
+                    url: port + '/v1/window/getWinId',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'get',
+                    success: function (e) {
+                        layero.find('#ewm').attr('data-winid', e);
+                    }
+                });
+
+                // 生成二维码
+                layero.find('#createEwm').click(function () {
+                    $.ajax({
+                        url: port + '/v1/window/getqrcode',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'get',
+                        data: {
+                            winId: layero.find('#ewm').attr('data-winid')
+                        },
+                        success: function (e) {
+                            console.log('获取二维码url：', e);
+                            layero.find('#ewm').attr('data-url', e);
+                            layero.find('#ewm').attr('src', port+ e);
+                        }
+                    });
+                });
+
+                // 单位区域change事件
+                layui.form.on('select(unitArea)', function (e) {
+                    layero.find('#shopType').val('');
+                    layero.find('#shopName').html('<option value=""></option>');
+                    layero.find('#shopFloor').html('<option value=""></option>');
+                    layui.form.render("select");
+                });
+
+                // 店铺类型change事件，级联店铺名称
+                layui.form.on('select(shopType)', function (e) {
+                    layero.find('#shopName').html('<option value=""></option>');
+                    layero.find('#shopFloor').html('<option value=""></option>');
+                    shopNameList(layero.find('#shopName'), 'id', layero.find('#unitArea').val(), e
+                        .value);
+                    layui.form.render("select");
+                });
+
+                // 店铺名称change事件级联层数
+                layui.form.on('select(shopName)', function (data) {
+                    var shopAddress=data.elem[data.elem.selectedIndex].getAttribute('data-shopaddress');
+                    layero.find('#winAddress').val(shopAddress);
+                    layero.find('#shopFloor').html('<option value=""></option>');
+                    var floolNum = layero.find('#shopName option:selected').attr(
+                    'data-floor'); //获取选中的层数，来遍历下级的层数
+                    for (var i = 0; i < floolNum; i++) {
+                        layero.find('#shopFloor').append('<option value=' + (i + 1) + '>' + (i +
+                            1) + '</option>');
+                    }
+                    layui.form.render("select");
+                });
+
+
+            },
+            yes: function (index, layero) {
+
+                var unitArea = layero.find('#unitArea').val(); //单位区域id
+                var shopType = layero.find('#shopType').val(); //店铺类型
+                var shopName = layero.find('#shopName').val(); //店铺名称
+                var shopFloor = layero.find('#shopFloor').val(); //店铺层数
+                var winNum = layero.find('#winNum').val(); //窗口号
+                var winId = layero.find('#ewm').attr('data-winid'); //窗口id
+                var winName = layero.find('#winName').val(); //窗口名称
+                var device1 = layero.find('#device1').val(); //设备机号1
+                var device2 = layero.find('#device2').val(); //设备机号2
+                var winAddress = layero.find('#winAddress').val(); //窗口地址
+                var remark = layero.find('#remark').val(); //备注
+
+                if (unitArea == '') {
+                    layer.msg('请选择单位区域');
+                    return;
+                }
+                if (shopType == '') {
+                    layer.msg('请选择店铺类型');
+                    return;
+                }
+                if (shopName == '') {
+                    layer.msg('请选择店铺名称');
+                    return;
+                }
+                if (shopFloor == '') {
+                    layer.msg('请选择店铺层数');
+                    return;
+                }
+                if (winNum == '') {
+                    layer.msg('请输入窗口号');
+                    return;
+                }
+                if (winName == '') {
+                    layer.msg('请输入窗口名称');
+                    return;
+                }
+                if (winAddress == '') {
+                    layer.msg('请输入窗口地址');
+                    return;
+                }
+                if (!layero.find('#ewm').attr('src')) {
+                    layer.msg('请生成二维码');
+                    return;
+                }
+
+                $.ajax({
+                    url: port + '/v1/window/insert',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cId: localStorage.getItem('unitId'), //单位id
+                        winFloorNum: shopFloor, //所在层数
+                        shopId: shopName, //店铺名称id
+                        winAddress: winAddress, //窗口地址
+                        winDevice1No: device1, //设备机号1
+                        winDevice2No: device2, //设备机号2
+                        winId: winId, //窗口id
+                        winName: winName, //窗口名称
+                        winNo: winNum, //窗口号
+                        winRemark: remark, //备注
+                        winQRCode: layero.find('#ewm').attr('data-url'), //二维码url
+                    },
+                    success: function (e) {
+                        console.log('添加', e);
+                        if (e.status == 200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已添加');
+                            layer.close(index);
+                        } else {
+                            layer.msg(e.data);
+                        }
+                    }
+                });
+            },
+            content: '<div class="layui-fluid form-layer layui-form">' +
+                '<div class="layui-row">' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">单位名称:</label>' +
+                '<div class="layui-input-block">' +
+                '<input readonly type="text" autocomplete="off" class="layui-input" value=' + localStorage
+                .getItem('unitName') + ' data-id=' + localStorage.getItem('unitId') + '>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>单位区域:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="unitArea" lay-filter="unitArea">' +
+                '<option></option>' +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>店铺类型:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="shopType" lay-filter="shopType">' +
+                '<option></option>' +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>店铺名称:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="shopName" lay-filter="shopName">' +
+                '<option></option>' +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>店铺层数:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="shopFloor">' +
+                '<option></option>' +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>窗口号:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="winNum">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>窗口名称:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="winName">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">设备机号1:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="device1">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">设备机号2:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="device2">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>窗口地址:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="winAddress">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12" style="margin-bottom:5px;">' +
+                '<label class="layui-form-label"><i class="star">*</i>二维码:</label>' +
+                '<div class="layui-input-block">' +
+                '<img width="100" height="100" id="ewm" data-winid="" />' +
+                '<a class="layui-btn layui-btn-normal" style="margin-left:10px;" id="createEwm">生成二维码</a>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label">备注:</label>' +
+                '<div class="layui-input-block">' +
+                '<textarea class="layui-textarea" id="remark"></textarea>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div> '
+
+        });
+    }
+
+    // 修改
+    function editBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        console.log('修改', item[0]);
+        if (item.length == 1) {
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: ['600px', '500px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                    unitAreaList(layero.find('#unitArea'), 'id'); //单位区域下拉
+                    shopTypeList(layero.find('#shopType')); //店铺类型下拉
+
+                    // 单位区域回显下拉
+                    layero.find('#unitArea option').each(function (i, a) {
+                        if (item[0].cAreaName == $(a).html()) {
+                            $(a).attr('selected', true);
+                            layui.form.render('select');
+                        }
+                    });
+
+                    // 店铺类型回显下拉
+                    layero.find('#shopType option').each(function (i, a) {
+                        if (item[0].shopTypeId == $(a).val()) {
+                            $(a).attr('selected', true);
+                            layui.form.render('select');
+                        }
+                    });
+
+                    // 店铺名称下拉赋值回显
+                    shopNameList(layero.find('#shopName'), 'id', layero.find('#unitArea').val(), layero
+                        .find('#shopType').val());
+                    layero.find('#shopName option').each(function (i, a) {
+                        if (item[0].shopName == $(a).html()) {
+                            $(a).attr('selected', true);
+                        }
+                    });
+
+
+                    // 回显店铺层数
+                    var shopFloor = layero.find('#shopName option:selected').attr('data-floor'); //当前店铺层数
+                    for (var i = 0; i < shopFloor; i++) {
+                        layero.find('#shopFloor').append('<option value=' + (i + 1) + '>' + (i + 1) +
+                            '</option>');
+                    }
+                    layero.find('#shopFloor option').each(function (i, a) {
+                        if (item[0].winFloorNum == $(a).val()) {
+                            $(a).attr('selected', true);
+                        }
+                    });
+
+
+                    // 生成二维码
+                    layero.find('#createEwm').click(function () {
+                        $.ajax({
+                            url: port + '/v1/window/getqrcode',
+                            xhrFields: {
+                                withCredentials: true
+                            },
+                            type: 'get',
+                            data: {
+                                winId: layero.find('#ewm').attr('data-winid')
+                            },
+                            success: function (e) {
+                                console.log('获取二维码url：', e);
+                                layero.find('#ewm').attr('data-url', e);
+                                layero.find('#ewm').attr('src', port + e);
+                            }
+                        });
+                    });
+
+                    // 单位区域change事件，级联店铺名称
+                    layui.form.on('select(unitArea)', function (e) {
+                        layero.find('#shopType').val('');
+                        layero.find('#shopName').html('<option value=""></option>');
+                        layero.find('#shopFloor').html('<option value=""></option>');
+                        layui.form.render("select");
+                    });
+
+                    // 店铺类型change事件，级联店铺名称
+                    layui.form.on('select(shopType)', function (e) {
+                        layero.find('#shopName').html('<option value=""></option>');
+                        layero.find('#shopFloor').html('<option value=""></option>');
+                        shopNameList(layero.find('#shopName'), 'id', layero.find('#unitArea').val(),
+                            e.value);
+                        layui.form.render("select");
+
+                    });
+
+                    // 店铺名称change事件级联层数
+                    layui.form.on('select(shopName)', function (data) {
+                        var shopAddress=data.elem[data.elem.selectedIndex].getAttribute('data-shopaddress');
+                    layero.find('#winAddress').val(shopAddress);
+                        layero.find('#shopFloor').html('<option value=""></option>');
+                        var floolNum = layero.find('#shopName option:selected').attr(
+                        'data-floor'); //获取选中的层数，来遍历下级的层数
+                        for (var i = 0; i < floolNum; i++) {
+                            layero.find('#shopFloor').append('<option value=' + (i + 1) + '>' + (i +
+                                1) + '</option>');
+                        }
+                        layui.form.render("select");
+
+                    });
+
+                    layui.form.render("select");
+                },
+                yes: function (index, layero) {
+
+                    var unitArea = layero.find('#unitArea').val(); //单位区域id
+                    var shopType = layero.find('#shopType').val(); //店铺类型
+                    var shopName = layero.find('#shopName').val(); //店铺名称
+                    var shopFloor = layero.find('#shopFloor').val(); //店铺层数
+                    var winNum = layero.find('#winNum').val(); //窗口号
+                    var winId = layero.find('#ewm').attr('data-winid'); //窗口id
+                    var winName = layero.find('#winName').val(); //窗口名称
+                    var device1 = layero.find('#device1').val(); //设备机号1
+                    var device2 = layero.find('#device2').val(); //设备机号2
+                    var winAddress = layero.find('#winAddress').val(); //窗口地址
+                    var remark = layero.find('#remark').val(); //备注
+
+                    if (unitArea == '') {
+                        layer.msg('请选择单位区域');
+                        return;
+                    }
+                    if (shopType == '') {
+                        layer.msg('请选择店铺类型');
+                        return;
+                    }
+                    if (shopName == '') {
+                        layer.msg('请选择店铺名称');
+                        return;
+                    }
+                    if (shopFloor == '') {
+                        layer.msg('请选择店铺层数');
+                        return;
+                    }
+                    if (winNum == '') {
+                        layer.msg('请输入窗口号');
+                        return;
+                    }
+                    if (winName == '') {
+                        layer.msg('请输入窗口名称');
+                        return;
+                    }
+                    if (winAddress == '') {
+                        layer.msg('请输入窗口地址');
+                        return;
+                    }
+                    if (!layero.find('#ewm').attr('src')) {
+                        layer.msg('请生成二维码');
+                        return;
+                    }
+
+                    $.ajax({
+                        url: port + '/v1/window/update',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            winFloorNum: shopFloor, //所在层数
+                            shopId: shopName, //店铺名称id
+                            winAddress: winAddress, //窗口地址
+                            winDevice1No: device1, //设备机号1
+                            winDevice2No: device2, //设备机号2
+                            winId: item[0].winId, //窗口id
+                            winName: winName, //窗口名称
+                            winNo: winNum, //窗口号
+                            winRemark: remark, //备注
+                            winQRCode: layero.find('#ewm').attr('data-url'), //二维码url
+                        },
+                        success: function (e) {
+                            console.log('修改', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已修改');
+                                layer.close(index);
+                            } else {
+                                layer.msg(e.data);
+                            }
+                        }
+                    });
+                },
+                content: '<div class="layui-fluid form-layer layui-form">' +
+                    '<div class="layui-row">' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">单位名称:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input readonly type="text" autocomplete="off" class="layui-input" value=' + localStorage
+                    .getItem('unitName') + ' data-id=' + localStorage.getItem('unitId') + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>单位区域:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="unitArea" lay-filter="unitArea">' +
+                    '<option></option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>店铺类型:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="shopType" lay-filter="shopType">' +
+                    '<option></option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>店铺名称:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="shopName" lay-filter="shopName">' +
+                    '<option></option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>店铺层数:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="shopFloor">' +
+                    '<option></option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>窗口号:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="winNum" value=' + item[0]
+                    .winNo + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>窗口名称:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="winName" value=' + item[0]
+                    .winName + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">设备机号1:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="device1" value=' + item[0]
+                    .winDevice1No + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">设备机号2:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="device2" value=' + item[0]
+                    .winDevice2No + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>窗口地址:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="winAddress" value=' + item[0]
+                    .winAddress + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12" style="margin-bottom:5px;">' +
+                    '<label class="layui-form-label"><i class="star">*</i>二维码:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<img width="100" height="100" id="ewm" data-url=' + item[0].winQRCode +
+                    ' data-winid="" src="' + port+ item[0].winQRCode + '" />' +
+                    '<a class="layui-btn layui-btn-normal" style="margin-left:10px;" id="createEwm">生成二维码</a>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label">备注:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<textarea class="layui-textarea" id="remark">' + item[0].winRemark + '</textarea>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请选择单行数据')
+        }
+
+    }
+
+
+    // 删除
+    function delBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var delData = []; //要删除的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要删除的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                delData[i] = item[i].winId;
+            }
+            console.log('删除', delData);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/window/patchDelete',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'DELETE',
+                        data: {
+                            winIds: delData
+                        },
+                        success: function (e) {
+                            console.log('删除', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                
+                                if (e.data.sucCount==0) {
+                                    layer.msg('删除失败'+e.data.failCount+'条，失败原因：窗口被占用');
+                                }else{
+                                     layer.msg('删除成功');
+                                }
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+            });
+
+        }
+    }
+
+    // 打印二维码
+    function printEwm() {
+        var item = $("#table").bootstrapTable('getSelections');
+        if (item.length == 1) {
+            layer.open({
+                type: 1,
+                title: '二维码',
+                area: ['350px', '380px'],
+                btn: ['打印', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+                    layero.find('#ewm').attr('src', port + item[0].winQRCode);
+
+                },
+                yes: function (index, layero) {
+                    $('.print-wrap').printArea();
+                },
+                content: '<div class="layui-fluid">' +
+                    '<div class="print-wrap" style="text-align:center">' +
+                    '<img width="244" height="244" id="ewm" />' +
+                    '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请勾选要打印的单行数据');
+        }
+
+    }
+
+    // 详情
+    window.operateEvents = {
+        'click .info': function (e, value, row, index) {
+            console.log('详情', row);
+
+            layer.open({
+                type: 1,
+                title: '详情',
+                area: ['500px', '400px'],
+                btn: ['关闭'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                },
+                yes: function (index, layero) {
+                    layer.close(index);
+                },
+                content: '<div class="layui-fluid form-layer">' +
+                    '<table class="detail-table">' +
+                    '<tr>' +
+                    '<td>单位名称:</td>' +
+                    '<td>' + row.cName + '</td>' +
+                    '<td>单位区域:</td>' +
+                    '<td>' + row.cAreaName + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>店铺类型:</td>' +
+                    '<td>' + row.shopTypeName + '</td>' +
+                    '<td>店铺名称:</td>' +
+                    '<td>' + row.shopName + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>店铺层数:</td>' +
+                    '<td>' + row.winFloorNum + '</td>' +
+                    '<td>窗口号:</td>' +
+                    '<td>' + row.winNo + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>窗口名称:</td>' +
+                    '<td>' + row.winName + '</td>' +
+                    '<td>设备机号1:</td>' +
+                    '<td>' + row.winDevice1No + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>设备机号2:</td>' +
+                    '<td>' + row.winDevice2No + '</td>' +
+                    '<td>窗口地址:</td>' +
+                    '<td>' + row.winAddress + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>二维码:</td>' +
+                    '<td colspan="3"><img width="100" height="100" src="' + port + row.winQRCode +
+                    '" /></td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>备注:</td>' +
+                    '<td colspan="3">' + row.winRemark + '</td>' +
+                    '</tr>' +
+                    '</table>' +
+                    '</div> '
+
+            });
+        }
+    };
+
+    // 导入
+    function importBtn() {
+        layer.open({
+            type: 1,
+            title: '导入',
+            area: ['380px', '250px'],
+            btn: ['导入', '取消'],
+            yes: function (index, layero) {
+                layer.close(index);
+            },
+            btnAlign: 'c',
+            content: '<div class="layui-fluid import-layer">' +
+                '<div class="item">' +
+                '<label>模板:</label>' +
+                '<a href="###" class="down-module">点击下载模板</a>' +
+                '</div>' +
+                '<div class="item">' +
+                '<label>选择文件:</label>' +
+                '<div class="choose-file">' +
+                '<p class="file-name"></p>' +
+                '<span>浏览<input type="file" onchange="importFile(this)" /></span>' +
+                '</div>' +
+                '</div>' +
+                '</div>'
+
+        });
+    }
+
+    // 导入
+    function importFile(_this) {
+        var fileName = window.event.target.files[0].name;
+        $(_this).parent().siblings('.file-name').html(fileName)
+    }
+
+
+    // 营业
+    function startSell() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var arr = []; 
+
+        if (item.length == 0) {
+            layer.msg('请选择营业的窗口');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                arr.push(item[i].winId)
+            }
+            console.log('营业', arr);
+
+            layer.open({
+                type: 1,
+                title: '营业',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/window/recovery',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            winIds: arr
+                        },
+                        success: function (e) {
+                            console.log('营业', e)
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已开启营业');
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要对选中的窗口开启营业?</div>'
+            });
+
+        }
+    }
+
+    // 停业
+    function stopSell() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var arr = []; 
+
+        if (item.length == 0) {
+            layer.msg('请选择要停业的窗口');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                arr.push(item[i].winId)
+            }
+            console.log('停业', arr);
+
+            layer.open({
+                type: 1,
+                title: '停业',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/window/stop',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            winIds: arr
+                        },
+                        success: function (e) {
+                            console.log('停业', e)
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已停业');
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要对选中的窗口停业?</div>'
+            });
+
+        }
+    }
+
+   //根据角色id，判断按钮显隐   
+   var btnGroupData = [
+        {btnName:"窗口信息添加",btnDom:$("#addBtn")},
+        {btnName:"窗口信息修改",btnDom:$("#editBtn")},
+        {btnName:"窗口信息删除",btnDom:$("#delBtn")},
+        {btnName:"窗口信息打印二维码",btnDom:$("#printEwm")},
+        {btnName:"窗口信息营业",btnDom:$("#startSell")},
+        {btnName:"窗口信息停业",btnDom:$("#stopSell")},
+        {btnName:"窗口信息导入",btnDom:$("#importBtn")}       
+    ]
+    judgeBtnShow(btnGroupData)
+</script>
+
+</html>

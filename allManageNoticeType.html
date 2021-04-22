@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>新闻公告</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+         #toolbar .toolbar-btn{display: none;}
+         .gap-line{color: #e6e6e6;}
+         .layui-unit-box{display: none;}
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline isSuperAdmin">
+                                <label class="form-label">单位名称</label>
+                                <select id="unitName" lay-filter="unitName">
+                                    <option></option>
+                                </select>
+                            </div>     
+                            <div class="layui-input-inline">                              
+                                <input type="text" autocomplete="off" class="layui-input" id="noticeName" placeholder="名称">
+                            </div>
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>                    
+                        </form>
+                        <div id="toolbar" class="isAdmin">
+                            <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                            <a href="###" id="previewBtn" class="toolbar-btn " onclick="previewBtn()">预览</a>
+                            <a href="###" id="importBtn" class="toolbar-btn"  onclick="importBtn()">导入</a>
+                            <a href="###" id="exportBtn" class="toolbar-btn"  onclick="exportBtn()">导出</a>
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    $(function () {
+
+        unitList($('#unitName'), 'id'); //单位名称下拉
+      
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/newsKind/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-90, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) {                         
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'cName',
+                align: 'center',
+                title: '单位名称',
+            }, {
+                field: 'newsKindName',
+                align: 'center',
+                title: '名称'
+            }, {
+                field: 'remark',
+                align: 'center',
+                title: '备注',
+            }],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('新闻类型信息', data);
+                if (data.rows==0) {
+                    setTreeTableHeight(130);
+                }
+            },
+            //加载失败时执行
+            onLoadError: function () {
+                
+            },
+            onClickRow: function (row, $element) {}
+        });
+
+    });
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            cId: setUnitId('#unitName'), //单位名称id
+            keyword: $('#noticeName').val(), //关键字                    
+        };
+        return temp;
+    }
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+    // 添加
+    function addBtn() {
+        layer.open({
+            type: 1,
+            title: '添加',
+            area: ['410px', '320px'],
+            btn: ['确定', '取消'],
+            btnAlign: 'c',
+            success: function (layero, index) {
+               //如果是超级管理员，则显示单位
+               if(localStorage.getItem('superAdmin')){
+                   layero.find(".layui-unit-box").css("display","block");
+               }             
+            },
+            yes: function (index, layero) {
+                var unitArea = layero.find('#layuiUnitName').attr("data-id"); //单位区域
+                var kindName = layero.find('#kindName').val(); //名称             
+                var remark = layero.find('#remark').val(); //备注               
+                if (kindName == '') {
+                    layer.msg('请输入名称');
+                    return;
+                }
+               
+                $.ajax({
+                    url: port + '/v1/newsKind/insert',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cId: unitArea, //单位id
+                        kindName : kindName, //名称
+                        remark:remark //备注
+                    },
+                    success: function (e) {
+                        console.log('添加', e);
+                        if (e.status == 200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已添加');
+                            layer.close(index);
+                        } else {
+                            layer.msg(e.msg);
+                        }
+                    }
+                });
+            },
+            content: '<div class="layui-fluid form-layer layui-form layui-form">' +
+                        '<div class="layui-row">' +
+                            '<div class="layui-col-md12 layui-unit-box" >' +
+                                '<label class="layui-form-label"><i class="star">*</i>单位名称:</label>' +
+                                '<div class="layui-input-block">'+
+                                    '<input type="text" readonly autocomplete="off" class="layui-input" id="layuiUnitName" readonly value='+localStorage.getItem('unitName')+' data-id='+localStorage.getItem('unitId')+'>'+
+                                '</div>'+
+                            '</div>' +
+                            '<div class="layui-col-md12">' +
+                                '<label class="layui-form-label"><i class="star">*</i>名称:</label>' +
+                                '<div class="layui-input-block">' +
+                                    '<input type="text" autocomplete="off" class="layui-input" id="kindName" >' +
+                                '</div>' +
+                            '</div>' +                           
+                            '<div class="layui-col-md12">' +
+                                '<label class="layui-form-label">备注:</label>' +
+                                '<div class="layui-input-block">' +
+                                    '<textarea class="layui-textarea" id="remark"></textarea>' +
+                                '</div>' +
+                            '</div>' +                                       
+                        '</div>' +
+                    '</div> '
+
+        });
+    }
+
+    // 修改
+    function editBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        console.log('修改', item[0]);
+        if (item.length == 1) {
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: ['410px', '320px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+                  //如果是超级管理员，则显示单位
+                    if(localStorage.getItem('superAdmin')){
+                        layero.find(".layui-unit-box").css("display","block");
+                    }
+                },
+                yes: function (index, layero) {
+                    var kindId  = layero.find('#kindName').attr("data-newsKindId"); //id
+                    var kindName = layero.find('#kindName').val(); //名称                  
+                    var remark = layero.find('#remark').val(); //备注               
+                    if (kindName == '') {
+                        layer.msg('请输入名称');
+                        return;
+                    }                  
+                    $.ajax({
+                        url: port + '/v1/newsKind/update',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            kindId : kindId, //单位id
+                            kindName : kindName, //名称
+                            remark:remark //备注
+                        },
+                        success: function (e) {
+                            console.log('修改', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已修改');
+                                layer.close(index);
+                            } else {
+                                layer.msg(e.msg);
+                            }
+                        }
+                    });
+                },
+                content: '<div class="layui-fluid form-layer layui-form layui-form">' +
+                        '<div class="layui-row">' +
+                            '<div class="layui-col-md12 layui-unit-box">' +
+                                '<label class="layui-form-label"><i class="star">*</i>单位名称:</label>' +
+                                '<div class="layui-input-block">'+
+                                    '<input type="text" readonly autocomplete="off" class="layui-input" id="layuiUnitName" readonly value='+localStorage.getItem('unitName')+' data-id='+localStorage.getItem('unitId')+'>'+
+                                '</div>'+
+                            '</div>' +
+                            '<div class="layui-col-md12">' +
+                                '<label class="layui-form-label"><i class="star">*</i>名称:</label>' +
+                                '<div class="layui-input-block">' +
+                                    '<input type="text" autocomplete="off" class="layui-input" value="'+item[0].newsKindName+'" data-newsKindId = "'+item[0].newsKindId+'" id="kindName" >' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="layui-col-md12">' +
+                                '<label class="layui-form-label">备注:</label>' +
+                                '<div class="layui-input-block">' +
+                                    '<textarea class="layui-textarea"  id="remark">'+item[0].remark+'</textarea>' +
+                                '</div>' +
+                            '</div>' +                                       
+                        '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请选择单行数据')
+        }
+
+    }
+
+
+    // 删除
+    function delBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var delData = []; //要删除的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要删除的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                delData[i] = item[i].newsKindId;
+            }
+            console.log('删除', delData);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/newsKind/batchDelete',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'DELETE',
+                        data: {
+                            kindIds: delData
+                        },
+                        success: function (e) {
+                            console.log('删除', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已删除');
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+            });
+
+        }
+    }
+
+    // 详情
+    window.operateEvents = {
+        'click .info': function (e, value, row, index) {
+            console.log('详情', row);
+            layer.open({
+                type: 1,
+                title: '详情',
+                area: ['500px', '400px'],
+                btn: ['关闭'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                },
+                yes: function (index, layero) {
+                    layer.close(index);
+                },
+                content: '<div class="layui-fluid form-layer">' +
+                    '<table class="detail-table">' +
+                    '<tr>' +
+                    '<td>单位名称:</td>' +
+                    '<td>' + row.cName + '</td>' +
+                    '<td>单位区域:</td>' +
+                    '<td>' + row.cAreaName + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>店铺类型:</td>' +
+                    '<td>' + row.shopTypeName + '</td>' +
+                    '<td>店铺名称:</td>' +
+                    '<td>' + row.shopName + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>店铺层数:</td>' +
+                    '<td>' + row.winFloorNum + '</td>' +
+                    '<td>窗口号:</td>' +
+                    '<td>' + row.winNo + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>窗口名称:</td>' +
+                    '<td>' + row.winName + '</td>' +
+                    '<td>商家姓名:</td>' +
+                    '<td>' + row.shopOwnerName + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>登录账号:</td>' +
+                    '<td>' + row.shopOwnerUsername + '</td>' +
+                    '<td>登录密码:</td>' +
+                    '<td>' + row.shopOwnerPassword + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>账号类型:</td>' +
+                    '<td>' + (row.shopOwnerReceiptType == 1 ? '支付宝' : row.shopOwnerReceiptType == 2 ?
+                        '微信' : '银行卡') + '</td>' +
+                    '<td>账户账号:</td>' +
+                    '<td>' + row.shopOwnerReceiptAccount + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>账户持有人姓名:</td>' +
+                    '<td>' + row.shopOwnerReceiptName + '</td>' +
+                    '<td>联系方式:</td>' +
+                    '<td>' + row.shopOwnerPhone + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>承保日期（起）:</td>' +
+                    '<td>' + (row.shopOwnerBeginDate?row.shopOwnerBeginDate:'') + '</td>' +
+                    '<td>承保日期（至）:</td>' +
+                    '<td>' + (row.shopOwnerEndDate?row.shopOwnerEndDate:'') + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>备注:</td>' +
+                    '<td colspan="3">' + row.shopOwnerRemark + '</td>' +
+                    '</tr>' +
+                    '</table>' +
+                    '</div> '
+
+            });
+        }
+    };
+
+    // 导入
+    function importBtn() {
+        layer.open({
+            type: 1,
+            title: '导入',
+            area: ['380px', '250px'],
+            btn: ['导入', '取消'],
+            yes: function (index, layero) {
+                layer.close(index);
+            },
+            btnAlign: 'c',
+            content: '<div class="layui-fluid import-layer">' +
+                '<div class="item">' +
+                '<label>模板:</label>' +
+                '<a href="###" class="down-module">点击下载模板</a>' +
+                '</div>' +
+                '<div class="item">' +
+                '<label>选择文件:</label>' +
+                '<div class="choose-file">' +
+                '<p class="file-name"></p>' +
+                '<span>浏览<input type="file" onchange="importFile(this)" /></span>' +
+                '</div>' +
+                '</div>' +
+                '</div>'
+
+        });
+    }
+
+    // 导入
+    function importFile(_this) {
+        var fileName = window.event.target.files[0].name;
+        $(_this).parent().siblings('.file-name').html(fileName)
+    }
+
+     //根据角色id，判断按钮显隐   
+     var btnGroupData = [
+        {btnName:"公告类型添加",btnDom:$("#addBtn")},
+        {btnName:"公告类型修改",btnDom:$("#editBtn")},
+        {btnName:"公告类型删除",btnDom:$("#delBtn")},       
+    ]
+    judgeBtnShow(btnGroupData)
+</script>
+
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>人员信息iframe</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+    
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row" style="background: #fff;">
+            <div class="layui-col-md2">
+                <div id="tree" class="layui-tree left-side-tree" style="border-right: 1px solid #eee;"></div>
+            </div>
+            <div class="layui-col-md10">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline">
+                                <input type="text" autocomplete="off" class="layui-input" placeholder="证件号/姓名" id="cardName">
+                            </div>
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                                <a class="layui-btn layui-btn-normal" onclick="resetBtn()">重置</a>
+                            </div>
+                        </form>
+                        <!-- <div id="toolbar">
+                            <a href="###" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                            <a href="###" class="toolbar-btn" onclick="importBtn()">导入</a>
+                            <a href="###" class="toolbar-btn" onclick="exportBtn()">导出</a>
+                        </div> -->
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+
+var deptId='';//树形菜单部门id
+
+$(function() {
+    getTree();
+    // 数据表格
+    $('#table').bootstrapTable({
+         url:port+'/v1/person/query',
+         ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+         method: 'get',
+         locale: 'zh-CN',
+         toolbar: '#toolbar', //工具按钮用哪个容器
+         striped: true, //是否显示行间隔色
+         cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+         pagination: true, //是否显示分页（*）
+         sortable: true, //是否启用排序
+         sortOrder: "asc", //排序方式
+         undefinedText:'',//当数据为 undefined 时显示的字符
+         queryParams:queryParams, //查询参数
+         sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+         pageNum: 1, //初始化加载第一页，默认第一页
+         pageSize: 100, //每页的记录行数（*）
+         pageList: [20], //可供选择的每页的行数（*）
+         search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+         strictSearch: true,
+         paginationHAlign:'left',//指定 分页条 在水平方向的位置。’left’ or ‘right’
+         paginationDetailHAlign:'right',//指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+         showColumns: true, //是否显示所有的列
+         showRefresh: true, //是否显示刷新按钮
+         minimumCountColumns: 2, //最少允许的列数
+         clickToSelect: true, //是否启用点击选中行
+         height: $(window).height()-80, //表格的高度
+         uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+         showToggle: false, //是否显示详细视图和列表视图的切换按钮
+         cardView: false, //是否显示详细视图
+         detailView: false, //是否显示父子表
+         showRefresh:false,//隐藏刷新按钮
+         showColumns:false,//隐藏识图切换按钮
+         singleSelect:true,//单选
+         responseHandler: function(res) {//处理请求的数据
+            return {
+                "total": res.data.total,//总页数
+                "rows": res.data.list   //数据
+            };
+        },
+         columns: [{
+             checkbox: true
+         }, {
+             field: 'pNo',
+             align: 'center',
+             title: '证件号'
+         }, {
+             field: 'pName',
+             align: 'center',
+             title: '姓名'
+         }, {
+             field: 'pSex',
+             align: 'center',
+             title: '性别',
+         },{
+             field: 'cName',
+             align: 'center',
+             title: '单位名称',
+         },{
+             field: 'deptName',
+             align: 'center',
+             title: '部门'
+         },{
+             field: 'pMobile',
+             align: 'center',
+             title: '手机号码',
+         },{
+             field: 'pCardNo',
+             align: 'center',
+             title: '身份证号'
+         }],
+
+         //加载成功时执行
+         onLoadSuccess: function(data) {
+             console.log('人员信息', data);
+            
+             
+         },
+         //加载失败时执行
+         onLoadError: function() {
+            
+         },
+         onClickRow: function(row, $element) {}
+    });
+
+});
+
+// 树形菜单
+function getTree(){
+    $.ajax({
+        url:port+'/v1/dept/getTree',
+        type:'get',
+        xhrFields: {
+            withCredentials: true
+        },
+         data:{
+                cId:localStorage.getItem('superAdmin')?'':localStorage.getItem('unitId')
+        },
+        success:function(e){
+            console.log('树形菜单',e);
+            layui.tree.render({
+              elem: '#tree',  //绑定元素
+              showLine:false,//是否开启连接线
+              showCheckbox:false,//是否显示复选框
+              data: e.data,
+              click: function(obj){
+                deptId=obj.data.id;
+                $('#table').bootstrapTable('refresh');
+              }
+            });
+        }
+    })
+}
+
+//数据表格查询参数
+function queryParams(params) {
+    var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+     pageSize: params.limit, //页面大小
+     pageNum: (params.offset / params.limit) + 1, //页码
+     keyword:$('#cardName').val(),//证件号/姓名
+     cId:localStorage.getItem('unitId'),
+     // deptId:deptId,//部门id
+    };
+    return temp;
+}
+
+// 查询
+function searchBtn() {
+    $('#table').bootstrapTable('refresh');
+}
+
+// 重置
+function resetBtn(){
+    deptId='';
+    $('#cardName').val('');
+    $('#table').bootstrapTable('refresh');
+}
+
+// 获取勾选的数据
+function getPerson(){
+    return $('#table').bootstrapTable('getSelections');
+}
+
+</script>
+
+</html>

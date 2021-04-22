@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>用户管理</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+       #toolbar .toolbar-btn{display: none;}
+       .form-layer .layui-form-label{width: 80px;}
+       .form-layer .layui-input-block{margin-left: 80px;}
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline">
+                                <label class="form-label">用户名</label>
+                                <input type="text" autocomplete="off" class="layui-input" id="name">
+                            </div>
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>
+                        </form>
+                        <div id="toolbar">
+                            <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                            <a href="###" id="resetPasswordBtn" class="toolbar-btn" onclick="resetPasswordBtn()">初始密码</a>
+                            <!-- <a href="###" class="toolbar-btn" onclick="authBtn()">数据权限</a> -->
+                            <a href="###" id="importBtn" class="toolbar-btn"  onclick="importBtn()">导入</a>
+                            <a href="###" id="exportBtn" class="toolbar-btn"  onclick="exportBtn()">导出</a>                          
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+
+    $(function () {
+
+
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/user/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-90, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) { //处理请求的数据
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'company.cName',
+                align: 'center',
+                title: '单位名称'
+            },{
+                field: 'uName',
+                align: 'center',
+                title: '姓名',
+            }, {
+                field: 'uUsername',
+                align: 'center',
+                title: '用户名'
+            }, {
+                field: 'uNo',
+                align: 'center',
+                title: '证件号',
+            },{
+                field: 'uPassword',
+                align: 'center',
+                title: '登录密码',
+            }, {
+                field: 'roleName',
+                align: 'center',
+                title: '角色',
+            }],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('用户管理', data);
+                
+            },
+            //加载失败时执行
+            onLoadError: function () {
+                
+            },
+            onClickRow: function (row, $element) {},
+        });
+
+    });
+
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            keyword: $('#name').val(), //名称
+            cId:setUnitId()
+        };
+        return temp;
+    }
+
+
+
+
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+
+    // 数据密码
+    function resetPasswordBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var arr = []; //勾选的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要初始的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                arr[i] = item[i].uId;
+            }
+            console.log('初始密码', arr);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/user/setInitPassword',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'DELETE',
+                        data: {
+                            ids: arr
+                        },
+                        success: function (e) {
+                            console.log('初始密码', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已初始密码');
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要初始选中的数据?</div>'
+            });
+        }
+    }
+
+
+
+    // 添加
+    function addBtn() {
+        layer.open({
+            type: 1,
+            title: '添加',
+            area: ['380px', '350px'],
+            btn: ['确定', '取消'],
+            btnAlign: 'c',
+            success: function (layero, index) {
+                roleNameList(layero.find('#role'), 'id'); //设置角色下拉
+
+
+                 // 选择人员信息
+                layero.find('#selectUser').click(function (event) {
+                    layer.open({
+                        type: 2,
+                        title: '人员信息',
+                        area: ['1000px', '500px'],
+                        btn: ['确定', '取消'],
+                        btnAlign: 'c',
+                        success: function (layero1, index1) {
+
+                        },
+                        yes: function (index1, layero1) {
+                            var userData = window[layero1.find('iframe')[0]['name']].getPerson(); //获取弹层内勾选的数据
+                            if (userData.length == 0) {
+                                layer.msg('请勾选人员信息');
+                                return;
+                            }
+                            layero.find('#name').attr('value',userData[0].pName);//设置姓名为人员信息勾选的姓名
+                            layero.find('#workNum').attr('value',userData[0].pNo);//设置证件号为人员信息勾选的证件号
+                            // 如果勾选的人有部门，则设置部门名称和部门id
+                            if (userData[0].deptId) {
+                                layero.find('#depart').attr({'value':userData[0].deptName,'data-id':userData[0].deptId});
+                            }
+                            console.log(userData);
+                            layer.close(index1);
+                        },
+                        content: 'personInfoIframe.html'
+                    });
+                });
+
+                // 选择部门
+                layero.find('#depart').click(function (event) {
+                    layer.open({
+                        type: 1,
+                        title: '选择部门',
+                        area: ['300px', '500px'],
+                        // btn:['确定','取消'],
+                        btnAlign: 'c',
+                        success: function (layero1, index1) {
+                            $.ajax({
+                                url: port + '/v1/dept/getTree',
+                                xhrFields: {
+                                    withCredentials: true
+                                },
+                                data: {
+                                    cId: localStorage.getItem('unitId')
+                                },
+                                type: 'get',
+                                success: function (e) {
+                                    console.log('机构树', e);
+                                    layui.tree.render({
+                                        elem: layero1.find(
+                                        '#tree'), //绑定元素
+                                        showLine: false, //是否开启连接线
+                                        showCheckbox: false, //是否显示复选框
+                                        data: e.data,
+                                        click: function (e) {
+                                            console.log(
+                                            e); //得到当前点击的节点数据
+
+                                            layero.find(
+                                                    '#depart')
+                                                .attr({
+                                                    'value': e
+                                                        .data
+                                                        .title,
+                                                    'data-id': e
+                                                        .data
+                                                        .id
+                                                });
+
+                                            layer.close(index1);
+                                        }
+                                    });
+                                }
+                            });
+                        },
+                        yes: function (index1, layero1) {
+
+                        },
+                        content: '<div id="tree"></div>',
+                    })
+                });
+
+            },
+            yes: function (index, layero) {
+                var role = layero.find('#role').val(); //角色
+                var workNum = layero.find('#workNum').val(); //工号/学号
+                var name = layero.find('#name').val(); //姓名
+                var loginPassword = layero.find('#loginPassword').val(); //登录密码
+                var userName = layero.find('#userName').val(); //用户名
+                var depart = layero.find('#depart').attr('data-id'); //部门
+
+
+                if (role == '') {
+                    layer.msg('请选择角色');
+                    return;
+                }
+                if (name == '') {
+                    layer.msg('请输入姓名');
+                    return;
+                }
+                 if (depart == '') {
+                    layer.msg('请选择部门');
+                    return;
+                }
+                if (userName == '') {
+                    layer.msg('请输入用户名');
+                    return;
+                }
+                if (workNum == '') {
+                    layer.msg('请输入证件号');
+                    return;
+                }
+                if (loginPassword == '') {
+                    layer.msg('请输入登录密码');
+                    return;
+                }
+
+
+                $.ajax({
+                    url: port + '/v1/user/insert',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cId: localStorage.getItem('unitId'), //单位id
+                        deptId: depart, //部门
+                        password: loginPassword, //登录密码
+                        roleId: role, //角色
+                        uName: name, //姓名
+                        uNo: workNum, //工号/学号
+                        username: userName, //用户名
+                    },
+                    success: function (e) {
+                        console.log('添加', e);
+                        rId = '';
+                        if (e.status == 200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已添加');
+                            layer.close(index);
+                        } else {
+                            layer.msg(e.data);
+                        }
+                    }
+                });
+
+
+            },
+            content: '<div class="layui-fluid form-layer layui-form layui-form">' +
+                '<div class="layui-row">' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>角色:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="role">' +
+                '<option></option>' +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>姓名:</label>' +
+                '<div class="layui-input-block" style="padding-right:45px">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="name">' +
+                '<a style="position:absolute;right:0;top:0;padding:0 10px;" class="layui-btn layui-btn-normal" id="selectUser">选择</a>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>部门:</label>' +
+                '<div class="layui-input-block">' +
+                '<input readonly type="text" autocomplete="off" class="layui-input" id="depart" data-id="">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>用户名:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="userName">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>证件号:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="workNum">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>登录密码:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="loginPassword">' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div> '
+
+        });
+    }
+
+    // 修改
+    function editBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        console.log('修改', item[0]);
+        if (item.length == 1) {
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: ['380px', '350px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+                    roleNameList(layero.find('#role'), 'id'); //设置角色下拉
+
+                     // 选择人员信息
+                        layero.find('#selectUser').click(function (event) {
+                            layer.open({
+                                type: 2,
+                                title: '人员信息',
+                                area: ['1000px', '500px'],
+                                btn: ['确定', '取消'],
+                                btnAlign: 'c',
+                                success: function (layero1, index1) {
+
+                                },
+                                yes: function (index1, layero1) {
+                                    var userData = window[layero1.find('iframe')[0]['name']].getPerson(); //获取弹层内勾选的数据
+                                    if (userData.length == 0) {
+                                        layer.msg('请勾选人员信息');
+                                        return;
+                                    }
+                                    layero.find('#name').attr('value',userData[0].pName);//设置姓名为人员信息勾选的姓名
+                                    layero.find('#workNum').attr('value',userData[0].pNo);//设置证件号为人员信息勾选的证件号
+                                    // 如果勾选的人有部门，则设置部门名称和部门id
+                                    if (userData[0].deptId) {
+                                        layero.find('#depart').attr({'value':userData[0].deptName,'data-id':userData[0].deptId});
+                                    }
+                                    console.log(userData);
+                                    layer.close(index1);
+                                },
+                                content: 'personInfoIframe.html'
+                            });
+                        });
+
+                    // 回显角色下拉
+                    layero.find('#role option').each(function (i, a) {
+                        if (item[0].roleId == $(a).val()) {
+                            $(a).attr('selected', true);
+                            layui.form.render('select');
+                        }
+                    });
+
+
+                    // 选择部门
+                    layero.find('#depart').click(function (event) {
+                        layer.open({
+                            type: 1,
+                            title: '选择部门',
+                            area: ['300px', '500px'],
+                            // btn:['确定','取消'],
+                            btnAlign: 'c',
+                            success: function (layero1, index1) {
+                                $.ajax({
+                                    url: port + '/v1/dept/getTree',
+                                    xhrFields: {
+                                        withCredentials: true
+                                    },
+                                    data: {
+                                        cId: localStorage.getItem('unitId')
+                                    },
+                                    type: 'get',
+                                    success: function (e) {
+                                        console.log('机构树', e);
+                                        layui.tree.render({
+                                            elem: layero1.find(
+                                                '#tree'), //绑定元素
+                                            showLine: false, //是否开启连接线
+                                            showCheckbox: false, //是否显示复选框
+                                            data: e.data,
+                                            click: function (e) {
+                                                console.log(
+                                                e); //得到当前点击的节点数据
+
+                                                layero.find(
+                                                    '#depart'
+                                                    ).attr({
+                                                    'value': e
+                                                        .data
+                                                        .title,
+                                                    'data-id': e
+                                                        .data
+                                                        .id
+                                                });
+
+                                                layer.close(
+                                                    index1);
+                                            }
+                                        });
+                                    }
+                                });
+                            },
+                            yes: function (index1, layero1) {
+
+                            },
+                            content: '<div id="tree"></div>',
+                        })
+                    });
+
+                },
+                yes: function (index, layero) {
+                    var role = layero.find('#role').val(); //角色
+                    var workNum = layero.find('#workNum').val(); //工号/学号
+                    var name = layero.find('#name').val(); //姓名
+                    var loginPassword = layero.find('#loginPassword').val(); //登录密码
+                    var userName = layero.find('#userName').val(); //用户名
+                    var depart = layero.find('#depart').attr('data-id'); //部门
+
+
+                    if (role == '') {
+                        layer.msg('请选择角色');
+                        return;
+                    }
+                    if (name == '') {
+                        layer.msg('请输入姓名');
+                        return;
+                    }
+                     if (depart == '') {
+                        layer.msg('请选择部门');
+                        return;
+                    }
+                    if (userName == '') {
+                        layer.msg('请输入用户名');
+                        return;
+                    }
+                    if (workNum == '') {
+                        layer.msg('请输入证件号');
+                        return;
+                    }
+                    if (loginPassword == '') {
+                        layer.msg('请输入登录密码');
+                        return;
+                    }
+
+
+                    $.ajax({
+                        url: port + '/v1/user/update',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            uId: item[0].uId, //用户id
+                            deptId: depart, //部门
+                            password: loginPassword, //登录密码
+                            roleId: role, //角色
+                            uName: name, //姓名
+                            uNo: workNum, //工号/学号
+                            username: userName, //用户名
+                        },
+                        success: function (e) {
+                            console.log('修改', e);
+                            rId = '';
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已修改');
+                                layer.close(index);
+                            } else {
+                                layer.msg(e.data);
+                            }
+                        }
+                    });
+
+
+                },
+                content: '<div class="layui-fluid form-layer layui-form layui-form">' +
+                    '<div class="layui-row">' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>角色:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="role">' +
+                    '<option></option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                     '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>姓名:</label>' +
+                    '<div class="layui-input-block" style="padding-right:45px">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="name" value=' + item[0]
+                    .uName + '>' +
+                    '<a style="position:absolute;right:0;top:0;padding:0 10px;" class="layui-btn layui-btn-normal" id="selectUser">选择</a>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>部门:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input readonly type="text" autocomplete="off" class="layui-input" id="depart" value=' +
+                    item[0].deptName + ' data-id=' + item[0].deptId + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>用户名:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="userName" value=' + item[0]
+                    .uUsername + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>证件号:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="workNum" value=' + item[0]
+                    .uNo + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>登录密码:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="loginPassword" value=' +
+                    item[0].uPassword + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请选择单行数据')
+        }
+
+    }
+
+
+    // 删除
+    function delBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var delData = []; //要删除的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要删除的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                delData[i] = item[i].uId;
+            }
+            console.log('删除', delData);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/user/patchDelete',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'DELETE',
+                        data: {
+                            uIds: delData
+                        },
+                        success: function (e) {
+                            console.log('删除', e)
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已删除');
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+            });
+        }
+    }
+
+    // 详情
+    window.operateEvents = {
+        'click .info': function (e, value, row, index) {
+            console.log('详情', row);
+            layer.open({
+                type: 1,
+                title: '详情',
+                area: ['500px', '300px'],
+                btn: ['关闭'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                },
+                yes: function (index, layero) {
+                    layer.close(index);
+                },
+                content: '<div class="layui-fluid form-layer">' +
+                    '<table class="detail-table">' +
+                    '<tr>' +
+                    '<td>编号:</td>' +
+                    '<td>' + row.company.cNo + '</td>' +
+                    '<td>单位名称:</td>' +
+                    '<td>' + row.company.cName + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>负责人:</td>' +
+                    '<td>' + row.company.cContact + '</td>' +
+                    '<td>负责人电话:</td>' +
+                    '<td>' + row.company.cPhone + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>账户号:</td>' +
+                    '<td>' + row.uUsername + '</td>' +
+                    '<td>密码:</td>' +
+                    '<td>' + row.uPassword + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>开始使用日期:</td>' +
+                    '<td>' + row.uStartTime + '</td>' +
+                    '<td>到期截止日期:</td>' +
+                    '<td>' + row.uEndTime + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>备注:</td>' +
+                    '<td colspan="3">' + row.uRemark + '</td>' +
+                    '</tr>' +
+                    '</table>' +
+                    '</div> '
+
+            });
+        }
+    };
+
+    //根据角色id，判断按钮显隐   
+    var btnGroupData = [
+        {btnName:"用户管理添加",btnDom:$("#addBtn")},
+        {btnName:"用户管理修改",btnDom:$("#editBtn")},    
+        {btnName:"用户管理删除",btnDom:$("#delBtn")},    
+        {btnName:"用户管理初始密码",btnDom:$("#resetPasswordBtn")},        
+    ]
+    judgeBtnShow(btnGroupData)
+
+</script>
+
+</html>

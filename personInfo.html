@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>人员信息</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+       #toolbar .toolbar-btn{display: none;}
+     
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline isSuperAdmin">
+                                <label class="form-label">单位名称</label>
+                                <select id="unitName">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">证件号/姓名</label>
+                                <input type="text" autocomplete="off" class="layui-input" id="cardName">
+                            </div>
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>
+                        </form>
+                        <div id="toolbar" class="isAdmin">
+                            <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                            <a href="###" id="importBtn" class="toolbar-btn"  onclick="importBtn()">导入</a>
+                            <a href="###" id="exportBtn" class="toolbar-btn"  onclick="exportBtn()">导出</a>
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    var formData = new FormData();//记录导入文件
+    $(function () {
+        unitList('#unitName', 'id') //赋值单位名称下拉
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/person/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-90, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) { //处理请求的数据
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'cName',
+                align: 'center',
+                title: '单位名称',
+            }, {
+                field: 'pNo',
+                align: 'center',
+                title: '证件号'
+            }, {
+                field: 'pName',
+                align: 'center',
+                title: '姓名'
+            }, {
+                field: 'pSex',
+                align: 'center',
+                title: '性别',
+            }, {
+                field: 'pMobile',
+                align: 'center',
+                title: '手机号码',
+            },{
+                field: 'name9',
+                align: 'center',
+                title: '操作',
+                events: operateEvents,
+                formatter: function (value, row, index) {
+                    var result =
+                        "<a href='javascript:;' class='info' style='color:#129CD6;'>详情</a>";
+                    return result;
+                }
+            }],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('人员信息', data);
+                if (data.rows==0) {
+                    setTreeTableHeight(130);
+                }
+            },
+            //加载失败时执行
+            onLoadError: function () {
+              
+            },
+            onClickRow: function (row, $element) {}
+        });
+
+    });
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            keyword: $('#cardName').val(), //证件号/姓名
+            cId: setUnitId('#unitName'), //单位名称
+        };
+        return temp;
+    }
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+    // 添加
+    function addBtn() {
+        layer.open({
+            type: 1,
+            title: '添加',
+            area: ['600px', '450px'],
+            btn: ['确定', '取消'],
+            btnAlign: 'c',
+            success: function (layero, index) {
+                layui.form.render('select');
+
+                // 选择部门
+                layero.find('#depart').click(function (event) {
+                    layer.open({
+                        type: 1,
+                        title: '选择部门',
+                        area: ['300px', '500px'],
+                        // btn:['确定','取消'],
+                        btnAlign: 'c',
+                        success: function (layero1, index1) {
+                            $.ajax({
+                                url: port + '/v1/dept/getTree',
+                                xhrFields: {
+                                    withCredentials: true
+                                },
+                                data: {
+                                    cId: localStorage.getItem('unitId')
+                                },
+                                type: 'get',
+                                success: function (e) {
+                                    console.log('机构树', e);
+                                    layui.tree.render({
+                                        elem: layero1.find(
+                                        '#tree'), //绑定元素
+                                        showLine: false, //是否开启连接线
+                                        showCheckbox: false, //是否显示复选框
+                                        data: e.data,
+                                        click: function (e) {
+                                            console.log(
+                                            e); //得到当前点击的节点数据
+
+                                            layero.find(
+                                                    '#depart')
+                                                .attr({
+                                                    'value': e
+                                                        .data
+                                                        .title,
+                                                    'data-id': e
+                                                        .data
+                                                        .id
+                                                });
+
+                                            layer.close(index1);
+                                        }
+                                    });
+                                }
+                            })
+                        },
+                        yes: function (index1, layero1) {
+
+                        },
+                        content: '<div id="tree"></div>',
+                    })
+                });
+
+
+            },
+            yes: function (index, layero) {
+
+                var pNum = layero.find('#pNum').val(); //证件号
+                var name = layero.find('#name').val(); //姓名
+                var depart = layero.find('#depart').attr('data-id'); //部门
+                var sex = layero.find('#sex').val(); //性别
+                var homeTown = layero.find('#homeTown').val(); //籍贯
+                var nation = layero.find('#nation').val(); //民族
+                var marriage = layero.find('#marriage').val(); //婚姻状况
+                var phone = layero.find('#phone').val(); //手机号码
+                var idCard = layero.find('#idCard').val(); //身份证号
+                var address = layero.find('#address').val(); //家庭住址
+                var remark = layero.find('#remark').val(); //备注
+
+                if (pNum == '') {
+                    layer.msg('请输入证件号');
+                    return;
+                }
+
+                if (name == '') {
+                    layer.msg('请输入姓名');
+                    return;
+                }
+                if (phone != '' && !phongReg.test(phone)) {
+                    layer.msg('手机号码格式错误');
+                    return;
+                }
+                if (idCard != '' && !idCardReg.test(idCard)) {
+                    layer.msg('身份证号格式错误');
+                    return;
+                }
+
+                $.ajax({
+                    url: port + '/v1/person/insert',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cId: localStorage.getItem('unitId'), //单位id
+                        deptId: depart, //部门
+                        pAddress: address, //家庭住址
+                        pCardNo: idCard, //身份证号
+                        pMaritalStatus: marriage, //婚姻状况
+                        pMobile: phone, //手机号码
+                        pName: name, //姓名
+                        pNation: nation, //民族
+                        pNativePlace: homeTown, //籍贯
+                        pNo: pNum, //证件号
+                        pPassword:'123456',//登录密码，设置默认密码
+                        pRemark: remark, //备注
+                        pSex: sex, //性别
+                    },
+                    success: function (e) {
+                        console.log('添加', e);
+                        if (e.status == 200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已添加');
+                            layer.close(index);
+                        } else {
+                            layer.msg(e.msg);
+                        }
+                    }
+                });
+
+            },
+            content: '<div class="layui-fluid form-layer layui-form">' +
+                '<div class="layui-row">' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>证件号:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="pNum">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>姓名:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="name">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">单位名称:</label>' +
+                '<div class="layui-input-block">' +
+                '<input readonly type="text" autocomplete="off" class="layui-input" id="unitName" value=' +
+                localStorage.getItem('unitName') + ' data-id=' + localStorage.getItem('unitId') + '>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">部门:</label>' +
+                '<div class="layui-input-block">' +
+                '<input readonly placeholder="点击选择部门" type="text" autocomplete="off" class="layui-input" id="depart">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">性别:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="sex">' +
+                '<option></option>' +
+                '<option>男</option>' +
+                '<option>女</option>' +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">籍贯:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="homeTown">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">民族:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="nation">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">婚姻状况:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="marriage">' +
+                '<option></option>' +
+                '<option>未婚</option>' +
+                '<option>已婚</option>' +
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">手机号码:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="phone">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label">身份证号:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="idCard">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label">家庭住址:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="address">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label">备注:</label>' +
+                '<div class="layui-input-block">' +
+                '<textarea class="layui-textarea" id="remark"></textarea>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div> '
+
+        });
+    }
+
+    // 修改
+    function editBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        console.log('修改', item[0]);
+        if (item.length == 1) {
+            var departName='';
+            if (item[0].deptName) {
+                departName=item[0].deptName;
+            }else{
+                departName=item[0].cName;
+            }
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: ['600px', '450px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+                    layui.form.render('select');
+
+                    // 性别回显
+                    layero.find('#sex option').each(function (i, a) {
+                        if (item[0].pSex == $(a).html()) {
+                            $(a).attr('selected', true);
+                            layui.form.render('select');
+                        }
+                    });
+
+                    // 婚姻状况回显
+                    layero.find('#marriage option').each(function (i, a) {
+                        if (item[0].pMaritalStatus == $(a).html()) {
+                            $(a).attr('selected', true);
+                            layui.form.render('select');
+                        }
+                    });
+
+                    // 选择部门
+                    layero.find('#depart').click(function (event) {
+                        layer.open({
+                            type: 1,
+                            title: '选择部门',
+                            area: ['300px', '500px'],
+                            // btn:['确定','取消'],
+                            btnAlign: 'c',
+                            success: function (layero1, index1) {
+                                $.ajax({
+                                    url: port + '/v1/dept/getTree',
+                                    xhrFields: {
+                                        withCredentials: true
+                                    },
+                                    type: 'get',
+                                    data: {
+                                        cId: localStorage.getItem('unitId')
+                                    },
+                                    success: function (e) {
+                                        console.log('机构树', e);
+                                        layui.tree.render({
+                                            elem: layero1.find(
+                                                '#tree'), //绑定元素
+                                            showLine: false, //是否开启连接线
+                                            showCheckbox: false, //是否显示复选框
+                                            data: e.data,
+                                            click: function (e) {
+                                                console.log(
+                                                e); //得到当前点击的节点数据
+
+                                                layero.find(
+                                                    '#depart'
+                                                    ).attr({
+                                                    'value': e
+                                                        .data
+                                                        .title,
+                                                    'data-id': e
+                                                        .data
+                                                        .id
+                                                });
+
+                                                layer.close(
+                                                    index1);
+                                            }
+                                        });
+                                    }
+                                })
+                            },
+                            yes: function (index1, layero1) {
+
+                            },
+                            content: '<div id="tree"></div>',
+                        })
+                    });
+                },
+                yes: function (index, layero) {
+
+                    var pNum = layero.find('#pNum').val(); //证件号
+                    var name = layero.find('#name').val(); //姓名
+                    var depart = layero.find('#depart').attr('data-id'); //部门
+                    var sex = layero.find('#sex').val(); //性别
+                    var homeTown = layero.find('#homeTown').val(); //籍贯
+                    var nation = layero.find('#nation').val(); //民族
+                    var marriage = layero.find('#marriage').val(); //婚姻状况
+                    var phone = layero.find('#phone').val(); //手机号码
+                    var idCard = layero.find('#idCard').val(); //身份证号
+                    var address = layero.find('#address').val(); //家庭住址
+                    var remark = layero.find('#remark').val(); //备注
+
+                    if (pNum == '') {
+                        layer.msg('请输入证件号');
+                        return;
+                    }
+                    if (name == '') {
+                        layer.msg('请输入姓名');
+                        return;
+                    }
+                    if (phone != '' && !phongReg.test(phone)) {
+                        layer.msg('手机号码格式错误');
+                        return;
+                    }
+                    if (idCard != '' && !idCardReg.test(idCard)) {
+                        layer.msg('身份证号格式错误');
+                        return;
+                    }
+
+
+                    $.ajax({
+                        url: port + '/v1/person/update',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            cId: localStorage.getItem('unitId'), //单位id
+                            deptId: depart=='null'?null:depart, //部门
+                            pAddress: address, //家庭住址
+                            pCardNo: idCard, //身份证号
+                            pMaritalStatus: marriage, //婚姻状况
+                            pMobile: phone, //手机号码
+                            pName: name, //姓名
+                            pNation: nation, //民族
+                            pNativePlace: homeTown, //籍贯
+                            pNo: pNum, //证件号
+                            pPassword:'123456',//登录密码，设置默认密码
+                            pRemark: remark, //备注
+                            pSex: sex, //性别
+                            pId: item[0].pId, //人员id
+                        },
+                        success: function (e) {
+                            console.log('修改', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已修改');
+                                layer.close(index);
+                            } else {
+                                layer.msg(e.msg);
+                            }
+                        }
+                    });
+
+                },
+                content: '<div class="layui-fluid form-layer layui-form">' +
+                    '<div class="layui-row">' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>证件号:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="pNum" value=' + item[0].pNo +
+                    '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>姓名:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="name" value=' + item[0]
+                    .pName + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">单位名称:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input readonly type="text" autocomplete="off" class="layui-input" id="unitName" value=' +
+                    item[0].cName + ' data-id=' + item[0].cId + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">部门:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input readonly placeholder="点击选择部门" type="text" autocomplete="off" class="layui-input" id="depart" value=' +
+                    departName + ' data-id=' + item[0].deptId + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">性别:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="sex">' +
+                    '<option></option>' +
+                    '<option>男</option>' +
+                    '<option>女</option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">籍贯:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="homeTown" value=' + item[0]
+                    .pNativePlace + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">民族:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="nation" value=' + item[0]
+                    .pNation + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">婚姻状况:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="marriage">' +
+                    '<option></option>' +
+                    '<option>未婚</option>' +
+                    '<option>已婚</option>' +
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">手机号码:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="phone" value=' + item[0]
+                    .pMobile + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label">身份证号:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="idCard" value=' + item[0]
+                    .pCardNo + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label">家庭住址:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="address" value=' + item[0]
+                    .pAddress + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label">备注:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<textarea class="layui-textarea" id="remark">' + item[0].pRemark + '</textarea>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请选择单行数据')
+        }
+
+    }
+
+    // 删除
+    function delBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var delData = []; //要删除的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要删除的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                delData[i] = item[i].pId;
+            }
+            console.log('删除', delData);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/person/patchDelete',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'DELETE',
+                        data: {
+                            pIds: delData
+                        },
+                        success: function (e) {
+                            console.log('删除', e)
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已删除');
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+            });
+
+        }
+    }
+
+    //导出
+    function exportBtn(){       
+        location.href=port+"/v1/person/export?cId="+localStorage.getItem("unitId")+"&keyword="+$("#cardName").val()
+    }
+
+
+    // 导入
+    function importBtn() {
+        //清空formData
+        formData=null;
+        formData=new FormData; 
+        layer.open({
+            type: 1,
+            title: '导入',
+            area: ['380px', '250px'],
+            btn: ['导入', '取消'],
+            yes: function (layero, index) {                
+                formData.append("cId",localStorage.getItem("unitId"))
+                $.ajax({
+                        url: port + '/v1/person/import',
+                        xhrFields: {
+                            withCredentials: true
+                        },                   
+                        type: 'POST',
+                        async: false,
+                        data:formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (e) {
+                            console.log('导入', e);                                                   
+                            layer.open({
+                                type: 1,
+                                title: '提示',
+                                area: ['380px', '250px'],
+                                btn: ['关闭'],
+                                btnAlign: 'c',
+                                success:function(layero, index){    
+                                $('#table').bootstrapTable('refresh');                                 
+                                    if(e.errorDetails.length>0){
+                                        layero.find(".import-layer-errText").css("display","block");                                                                   
+                                    }
+                                },
+                                yes:function(layero, index){
+                                    layer.closeAll();
+                                },
+                                content: '<div class="layui-fluid import-layer ">'+
+                                            '<p class="import-layer-result">' +e.result+'</p>'+
+                                            '<p class="import-layer-errText" onclick="downloadErrMsg()"> 下载错误信息</p>'+
+                                         '</div>'
+                            })
+                        }
+                })                       
+            },
+            btnAlign: 'c',
+            content: '<div class="layui-fluid import-layer">' +
+                '<div class="item">' +
+                '<label>模板:</label>' +
+                '<a href="###" class="down-module" onclick="downloadTemplate()">点击下载模板</a>' +
+                '</div>' +
+                '<div class="item">' +
+                '<label>选择文件:</label>' +
+                '<div class="choose-file">' +
+                '<p class="file-name"></p>' +
+                '<span>浏览<input type="file" id="importFile" onchange="importFile(this)" /></span>' +
+                '</div>' +
+                '</div>' +
+                '</div>'
+
+        });
+    }
+
+    //下载模板
+    function downloadTemplate(){
+        location.href="./templateExcel/人员信息.xlsx";
+    }
+    
+    //下载错误信息 
+    function downloadErrMsg(){
+        location.href=port+"/v1/person/exportError";
+    }
+
+    // 导入
+    function importFile(_this) {       
+        var fileName = window.event.target.files[0].name;         
+        formData.append("file",window.event.target.files[0])
+        $(_this).parent().siblings('.file-name').html(fileName)
+    }
+
+    // 详情
+    window.operateEvents = {
+        'click .info': function (e, value, row, index) {
+            console.log('详情', row);
+            layer.open({
+                type: 1,
+                title: '详情',
+                area: ['500px', '350px'],
+                btn: ['关闭'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                },
+                yes: function (index, layero) {
+                    layer.close(index);
+                },
+                content: '<div class="layui-fluid form-layer">' +
+                    '<table class="detail-table">' +
+                    '<tr>' +
+                    '<td>证件号:</td>' +
+                    '<td>' + isNull(row.pNo) + '</td>' +
+                    '<td>姓名:</td>' +
+                    '<td>' + isNull(row.pName) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>单位名称:</td>' +
+                    '<td>'+isNull(row.cName)+'</td>' +
+                    '<td>部门:</td>' +
+                    '<td>' + isNull(row.deptName) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>性别:</td>' +
+                    '<td>' + isNull(row.pSex) + '</td>' +
+                    '<td>籍贯:</td>' +
+                    '<td>' + isNull(row.pNativePlace) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>民族:</td>' +
+                    '<td>' + isNull(row.pNation) + '</td>' +
+                    '<td>婚姻状况:</td>' +
+                    '<td>' + isNull(row.pMaritalStatus) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>手机号码:</td>' +
+                    '<td>' + isNull(row.pMobile) + '</td>' +
+                    '<td>身份证号:</td>' +
+                    '<td>' + isNull(row.pCardNo) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>家庭住址:</td>' +
+                    '<td colspan="3">' + isNull(row.pAddress) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>备注:</td>' +
+                    '<td colspan="3">' + isNull(row.pRemark) + '</td>' +
+                    '</tr>' +
+                    '</table>' +
+                    '</div> '
+
+            });
+        }
+    };
+
+    //根据角色id，判断按钮显隐   
+    var btnGroupData = [
+        {btnName:"人员信息添加",btnDom:$("#addBtn")},
+        {btnName:"人员信息修改",btnDom:$("#editBtn")},
+        {btnName:"人员信息删除",btnDom:$("#delBtn")},
+        {btnName:"人员信息导入",btnDom:$("#importBtn")},
+        {btnName:"人员信息导出",btnDom:$("#exportBtn")},
+    ]
+    judgeBtnShow(btnGroupData)
+</script>
+
+</html>

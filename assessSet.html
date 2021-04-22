@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>评价设置</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+    <style type="text/css">
+        #toolbar .toolbar-btn{display: none;}
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline isSuperAdmin">
+                                <label class="form-label">单位名称</label>
+                                <select id="unitName" lay-filter="unitName">
+                                    <option></option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">评价项目</label>
+                                <select id="assessItem">
+                                    <option></option>
+                                    <option value="1">评价</option>
+                                    <option value="2">口味</option>
+                                    <option value="3">包装</option>
+                                </select>
+                            </div>
+                            <div class="layui-input-inline">
+                                <label class="form-label">提示内容</label>
+                                <input type="text" autocomplete="off" class="layui-input" id="content">
+                            </div>
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>
+                        </form>
+                        <div id="toolbar" class="isAdmin">
+                            <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>
+                            <a href="###" id="importBtn" class="toolbar-btn"  onclick="importBtn()">导入</a>
+                            <a href="###" id="exportBtn" class="toolbar-btn"  onclick="exportBtn()">导出</a>
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    $(function () {
+        unitList('#unitName', 'id') //赋值单位名称下拉
+        assessItemList($('#assessItem'), 'id'); //评价项目下拉
+
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/commentItem/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                },
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-90, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) {
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'cName',
+                align: 'center',
+                title: '单位名称'
+            },{
+                field: 'commentTypeName',
+                align: 'center',
+                title: '评价项目',
+                formatter: function (value, row, index) {
+                    if (row.commentTypeId==1) {
+                        return '评价';
+                    }
+                    if (row.commentTypeId==2) {
+                        return '口味';
+                    }
+                    if (row.commentTypeId==3) {
+                        return '包装';
+                    }
+                }
+            }, {
+                field: 'commentItemScore',
+                align: 'center',
+                title: '分值'
+            }, {
+                field: 'commentItemContent',
+                align: 'center',
+                title: '提示内容',
+            },  {
+                field: 'commentItemCreateTime',
+                align: 'center',
+                title: '操作日期',
+            },{
+                field: 'commentItemRemark',
+                align: 'center',
+                title: '备注',
+            }, ],
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('评价设置', data);
+               
+            },
+            //加载失败时执行
+            onLoadError: function () {
+                
+            },
+            onClickRow: function (row, $element) {}
+        });
+    });
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            keyword: $('#content').val(), //评价项目
+            commentTypeId: $('#assessItem').val(), //类型
+            cId:setUnitId("#unitName"),
+        };
+        return temp;
+    }
+      //单位名称change级联查询
+    layui.form.on('select(unitName)', function (data) {
+        $('#assessItem').html('<option value=""></option>');
+        layui.form.render("select");
+        $.ajax({
+        url: port + '/v1/commentType/query',
+        xhrFields: {
+            withCredentials: true
+        },
+        type: 'get',
+        async: false,
+        data: {
+            pageNum: 1,
+            pageSize: 10000,
+            cId:data.value
+        },
+        success: function(e) {
+            var arr = e.data.list;
+            for (var i = 0; i < arr.length; i++) {
+                $('#assessItem').append('<option value=' + arr[i].commentTypeId + '>' + arr[i].commentTypeName + '</option>');
+                layui.form.render('select');
+            }
+        }
+    });
+    });
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+    // 添加
+    function addBtn() {
+        layer.open({
+            type: 1,
+            title: '添加',
+            area: ['400px', '350px'],
+            btn: ['确定', '取消'],
+            btnAlign: 'c',
+            success: function (layero, index) {
+                layui.form.render();
+                // assessItemList(layero.find('#assessItem'), 'id');
+            },
+            yes: function (index, layero) {
+                var assessItem = layero.find('#assessItem').val(); //评价项目
+                var fen = layero.find('#fen').val(); //分数
+                var content = layero.find('#content').val(); //提示内容
+                var remark = layero.find('#remark').val(); //备注
+
+                if (assessItem == '') {
+                    layer.msg('请选择评价项目');
+                    return;
+                }
+                if (fen == '') {
+                    layer.msg('请输入分数');
+                    return;
+                }
+                if (!zzsReg.test(fen)||fen>5) {
+                        layer.msg('分数须为1到5的正整数');
+                        return;
+                }
+                if (content == '') {
+                    layer.msg('请输入提示内容');
+                    return;
+                }
+
+                $.ajax({
+                    url: port + '/v1/commentItem/insert',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    type: 'post',
+                    data: {
+                        cId: localStorage.getItem('unitId'), //单位id
+                        commentItemContent: content, //提示内容
+                        commentItemRemark: remark, //备注
+                        commentItemScore: fen, //分数
+                        commentTypeId: assessItem, //评价项目id
+                    },
+                    success: function (e) {
+                        console.log('添加', e);
+                        if (e.status == 200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已添加');
+                            layer.close(index);
+                        } else {
+                            layer.msg(e.msg);
+                        }
+                    }
+                });
+            },
+            content: '<div class="layui-fluid form-layer layui-form layui-form">' +
+                '<div class="layui-row">' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>评价项目:</label>' +
+                '<div class="layui-input-block">' +
+                '<select id="assessItem">' +
+                '<option></option>' +
+                '<option value="1">评价</option>'+
+                '<option value="2">口味</option>'+
+                '<option value="3">包装</option>'+
+                '</select>' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>分数:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="fen" placeholder="1-5的正整数">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label"><i class="star">*</i>提示内容:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="content">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label">备注:</label>' +
+                '<div class="layui-input-block">' +
+                '<textarea class="layui-textarea" id="remark"></textarea>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div> '
+
+        });
+    }
+
+    // 修改
+    function editBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        console.log('修改', item[0]);
+        if (item.length == 1) {
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: ['400px', '350px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                    // 回显评价项目下拉
+                    layero.find('#assessItem option').each(function (i, a) {
+                        if (item[0].commentTypeId == $(a).val()) {
+                            $(a).attr('selected', true);
+                            layui.form.render('select');
+                        }
+                    });
+                },
+                yes: function (index, layero) {
+                    var assessItem = layero.find('#assessItem').val(); //评价项目
+                    var fen = layero.find('#fen').val(); //分数
+                    var content = layero.find('#content').val(); //提示内容
+                    var remark = layero.find('#remark').val(); //备注
+
+                    if (assessItem == '') {
+                        layer.msg('请选择评价项目');
+                        return;
+                    }
+                    if (fen == '') {
+                        layer.msg('请输入分数');
+                        return;
+                    }
+                    if (!zzsReg.test(fen)||fen>5) {
+                        layer.msg('分数须为1到5的正整数');
+                        return;
+                    }
+                    if (content == '') {
+                        layer.msg('请输入提示内容');
+                        return;
+                    }
+
+                    $.ajax({
+                        url: port + '/v1/commentItem/update',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'post',
+                        data: {
+                            commentItemId: item[0].commentItemId,
+                            commentItemContent: content, //提示内容
+                            commentItemRemark: remark, //备注
+                            commentItemScore: fen, //分数
+                            commentTypeId: assessItem, //评价项目id
+                            cId:localStorage.getItem('unitId')
+                        },
+                        success: function (e) {
+                            console.log('修改', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已修改');
+                                layer.close(index);
+                            } else {
+                                layer.msg(e.msg);
+                            }
+                        }
+                    });
+                },
+                content: '<div class="layui-fluid form-layer layui-form layui-form">' +
+                    '<div class="layui-row">' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>评价项目:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<select id="assessItem">' +
+                    '<option></option>' +
+                    '<option value="1">评价</option>'+
+                    '<option value="2">口味</option>'+
+                    '<option value="3">包装</option>'+
+                    '</select>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>分数:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="fen" value=' + item[0]
+                    .commentItemScore + ' placeholder="1-5的正整数">' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label"><i class="star">*</i>提示内容:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="content" value=' + item[0]
+                    .commentItemContent + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label">备注:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<textarea class="layui-textarea" id="remark">' + item[0].commentItemRemark +
+                    '</textarea>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请选择单行数据')
+        }
+    }
+
+    // 删除
+    function delBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var delData = []; //要删除的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要删除的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                delData[i] = item[i].commentItemId;
+            }
+            console.log('删除', delData);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/commentItem/patchDelete',
+                        xhrFields: {
+                            withCredentials: true
+                        },
+                        type: 'DELETE',
+                        data: {
+                            commentItemIds: delData
+                        },
+                        success: function (e) {
+                            console.log('删除', e)
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已删除');
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+            });
+
+        }
+    }
+
+     //根据角色id，判断按钮显隐   
+     var btnGroupData = [
+        {btnName:"评价设置添加",btnDom:$("#addBtn")},
+        {btnName:"评价设置修改",btnDom:$("#editBtn")},
+        {btnName:"评价设置删除",btnDom:$("#delBtn")}       
+    ]
+    judgeBtnShow(btnGroupData)
+
+</script>
+
+</html>

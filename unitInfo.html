@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>单位信息</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport"
+        content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="lib/bootstrap-table/bootstrap-table.min.css">
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <!--[if lt IE 9]>
+          <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+          <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+    <style type="text/css">
+      .layui-form-select dl{max-height: 190px;}
+    </style>
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body">
+                        <form class="layui-form table-search-form">
+                            <div class="layui-input-inline">
+                                <label class="form-label">单位名称</label>
+                                <input type="text" autocomplete="off" class="layui-input" id="unitName">
+                            </div>
+                            <div class="layui-input-inline">
+                                <a class="layui-btn layui-btn-normal" onclick="searchBtn()">查询</a>
+                            </div>
+                        </form>
+                        <div id="toolbar">
+                            <a href="###" id="addBtn" class="toolbar-btn" onclick="addBtn()">添加</a>
+                            <a href="###" id="editBtn" class="toolbar-btn" onclick="editBtn()">修改</a>
+                            <a href="###" id="delBtn" class="toolbar-btn del" onclick="delBtn()">删除</a>                           
+                        </div>
+                        <table id="table"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script src="./lib/layui/layui.all.js" charset="utf-8"></script>
+<script type="text/javascript" src="./js/xadmin.js"></script>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap-table/bootstrap-table-zh-CN.min.js"></script>
+<script type="text/javascript" src="js/common.js"></script>
+<script>
+    $(function () {
+        // 数据表格
+        $('#table').bootstrapTable({
+            url: port + '/v1/company/query',
+            ajaxOptions: {
+                xhrFields: {
+                    withCredentials: true
+                }
+            },
+            method: 'get',
+            locale: 'zh-CN',
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            striped: true, //是否显示行间隔色
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pagination: true, //是否显示分页（*）
+            sortable: true, //是否启用排序
+            sortOrder: "asc", //排序方式
+            undefinedText: '', //当数据为 undefined 时显示的字符
+            queryParams: queryParams, //查询参数
+            sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+            pageNum: 1, //初始化加载第一页，默认第一页
+            pageSize: 100, //每页的记录行数（*）
+            pageList: [20], //可供选择的每页的行数（*）
+            search: false, //是否显示表格搜索，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            strictSearch: true,
+            paginationHAlign: 'left', //指定 分页条 在水平方向的位置。’left’ or ‘right’
+            paginationDetailHAlign: 'right', //指定 分页详细信息 在水平方向的位置。’left’ or ‘right’
+            showColumns: true, //是否显示所有的列
+            showRefresh: true, //是否显示刷新按钮
+            minimumCountColumns: 2, //最少允许的列数
+            clickToSelect: true, //是否启用点击选中行
+            height: $(window).height()-90, //表格的高度
+            uniqueId: "areaId", //每一行的唯一标识，一般为主键列
+            showToggle: false, //是否显示详细视图和列表视图的切换按钮
+            cardView: false, //是否显示详细视图
+            detailView: false, //是否显示父子表
+            showRefresh:false,//隐藏刷新按钮
+            showColumns:false,//隐藏某列下拉菜单
+            responseHandler: function (res) { //处理请求的数据
+                return {
+                    "total": res.data.total, //总页数
+                    "rows": res.data.list //数据
+                };
+            },
+            columns: [{
+                checkbox: true
+            }, {
+                field: 'company.cNo',
+                align: 'center',
+                title: '编号'
+            }, {
+                field: 'company.cName',
+                align: 'center',
+                title: '单位名称'
+            }, {
+                field: 'company.cContact',
+                align: 'center',
+                title: '负责人',
+            }, {
+                field: 'company.cPhone',
+                align: 'center',
+                title: '负责人电话',
+            }, {
+                field: 'uUsername',
+                align: 'center',
+                title: '账户',
+            }, {
+                field: 'uPassword',
+                align: 'center',
+                title: '密码',
+            }, {
+                field: 'name7',
+                align: 'center',
+                title: '操作',
+                events: operateEvents,
+                formatter: function (value, row, index) {
+                    var result =
+                        "<a href='javascript:;' class='info' style='color:#129CD6;'>详情</a>";
+                    return result;
+                }
+            }],
+
+            //加载成功时执行
+            onLoadSuccess: function (data) {
+                console.log('单位信息', data);
+                
+            },
+            //加载失败时执行
+            onLoadError: function () {
+               
+            },
+            onClickRow: function (row, $element) {},
+        });
+
+    });
+
+
+    //数据表格查询参数
+    function queryParams(params) {
+        var temp = { //这里的键的名字和控制器的变量名必须一直，这边改动，控制器也需要改成一样的
+            pageSize: params.limit, //页面大小
+            pageNum: (params.offset / params.limit) + 1, //页码
+            keyword: $('#unitName').val(), //单位名称
+            cId:localStorage.getItem('unitId'),//单位id
+        };
+        return temp;
+    }
+
+    // 查询
+    function searchBtn() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+    // 添加
+    function addBtn() {
+        layer.open({
+            type: 1,
+            title: '添加',
+            area: ['600px', '420px'],
+            btn: ['确定', '取消'],
+            btnAlign: 'c',
+            success: function (layero, index) {
+
+                // 开始使用日期
+                layui.laydate.render({
+                    elem: '#startTime',
+                    trigger: 'click',
+                    // type: 'datetime',
+                    // format:'yyyy-MM-dd HH:mm',
+                    min: new Date().toLocaleString(), //最小日期为当前日期
+                    done: function (value, date, endDate) {
+                        console.log(value); //得到日期生成的值，如：2017-08-18
+                        layero.find('#startTime').attr('value', value)
+                    }
+                });
+
+                // 到期截止日期
+                layui.laydate.render({
+                    elem: '#endTime',
+                    trigger: 'click',
+                    // type: 'datetime',
+                    // format:'yyyy-MM-dd HH:mm',
+                    min: new Date().toLocaleString(), //最小日期为当前日期
+                    done: function (value, date, endDate) {
+                        console.log(value); //得到日期生成的值，如：2017-08-18
+                        layero.find('#endTime').attr('value', value)
+                    }
+                });
+            },
+            yes: function (index, layero) {
+                var num = layero.find('#num').val() //编号
+                var unitName = layero.find('#unitName').val() //单位名称
+                var userName = layero.find('#userName').val() //负责人
+                var phone = layero.find('#phone').val() //负责人电话
+                var accountNum = layero.find('#accountNum').val() //账户
+                var password = layero.find('#password').val() //密码
+                var weixinPayAdd = layero.find('#weixinPayAdd').val() //微信付款地址
+                var startTime = layero.find('#startTime').val() //开始使用日期
+                var endTime = layero.find('#endTime').val() //到期截止日期
+                var role = layero.find('#role').val() //角色
+                var remark = layero.find('#remark').val() //备注
+
+                if (num == '') {
+                    layer.msg('请输入编号');
+                    return;
+                }
+                if (unitName == '') {
+                    layer.msg('请输入单位名称');
+                    return;
+                }
+                if (userName == '') {
+                    layer.msg('请输入负责人');
+                    return;
+                }
+                if (phone == '') {
+                    layer.msg('请输入负责人电话');
+                    return;
+                }
+                if (!phongReg.test(phone)) {
+                    layer.msg('负责人电话格式错误');
+                    return;
+                }
+                if (accountNum == '') {
+                    layer.msg('请输入账户');
+                    return;
+                }
+                if (password == '') {
+                    layer.msg('请输入密码');
+                    return;
+                }
+                if (startTime == '') {
+                    layer.msg('请选择开始使用日期');
+                    return;
+                }
+                if (endTime == '') {
+                    layer.msg('请选择结束使用日期');
+                    return;
+                }
+
+                if (timeStamp(startTime) >= timeStamp(endTime)) {
+                    layer.msg('到期截止日期需晚于开始使用日期');
+                    return;
+                }
+
+
+                $.ajax({
+                    url: port + '/v1/company/insert',
+                    type: 'post',
+                    xhrFields: {
+                        withCredentials: true
+                    },
+                    data: {
+                        cNo: num,
+                        cName: unitName,
+                        cContact: userName,
+                        cPhone: phone,
+                        username: accountNum,
+                        password: password,
+                        startTime: startTime,
+                        endTime: endTime,
+                        remark: remark,
+                        roleId: 43, 
+                    },
+                    success: function (e) {
+                        console.log('添加', e);
+                        if (e.status == 200) {
+                            $('#table').bootstrapTable('refresh');
+                            layer.msg('已添加');
+                            layer.close(index);
+                        } else {
+                            layer.msg(e.data);
+                        }
+                    }
+                })
+               
+            },
+            content: '<div class="layui-fluid form-layer layui-form layui-form">' +
+                '<div class="layui-row">' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>编号:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="num">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>单位名称:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="unitName">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>负责人:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="userName">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>负责人电话:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="phone">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>账户:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="accountNum">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>密码:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" id="password">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>开始使用日期:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" readonly class="layui-input" id="startTime">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md6">' +
+                '<label class="layui-form-label"><i class="star">*</i>到期截止日期:</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="text" autocomplete="off" class="layui-input" readonly id="endTime">' +
+                '</div>' +
+                '</div>' +
+                '<div class="layui-col-md12">' +
+                '<label class="layui-form-label">备注:</label>' +
+                '<div class="layui-input-block">' +
+                '<textarea class="layui-textarea"  id="remark"></textarea>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div> '
+
+        });
+    }
+
+    // 修改
+    function editBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        console.log('修改', item[0]);
+        if (item.length == 1) {
+            layer.open({
+                type: 1,
+                title: '修改',
+                area: ['600px', '420px'],
+                btn: ['确定', '取消'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                    // 开始使用日期
+                    layui.laydate.render({
+                        elem: '#startTime',
+                        trigger: 'click',
+                        // type: 'datetime',
+                        // format:'yyyy-MM-dd HH:mm',
+                        min: new Date().toLocaleString(), //最小日期为当前日期
+                        done: function (value, date, endDate) {
+                            console.log(value); //得到日期生成的值，如：2017-08-18
+                            layero.find('#startTime').attr('value', value)
+                        }
+                    });
+
+                    // 到期截止日期
+                    layui.laydate.render({
+                        elem: '#endTime',
+                        trigger: 'click',
+                        // type: 'datetime',
+                        // format:'yyyy-MM-dd HH:mm',
+                        min: new Date().toLocaleString(), //最小日期为当前日期
+                        done: function (value, date, endDate) {
+                            console.log(value); //得到日期生成的值，如：2017-08-18
+                            layero.find('#endTime').attr('value', value)
+                        }
+                    });
+                },
+                yes: function (index, layero) {
+                    var num = layero.find('#num').val() //编号
+                    var unitName = layero.find('#unitName').val() //单位名称
+                    var userName = layero.find('#userName').val() //负责人
+                    var phone = layero.find('#phone').val() //负责人电话
+                    var accountNum = layero.find('#accountNum').val() //账户
+                    var password = layero.find('#password').val() //密码
+                    var weixinPayAdd = layero.find('#weixinPayAdd').val() //微信付款地址
+                    var startTime = layero.find('#startTime').val() //开始使用日期
+                    var endTime = layero.find('#endTime').val() //到期截止日期
+                    var role = layero.find('#role').val() //角色
+                    var remark = layero.find('#remark').val() //备注
+                    if (num == '') {
+                        layer.msg('请输入编号');
+                        return;
+                    }
+                    if (unitName == '') {
+                        layer.msg('请输入单位名称');
+                        return;
+                    }
+                    if (userName == '') {
+                        layer.msg('请输入负责人');
+                        return;
+                    }
+                    if (phone == '') {
+                        layer.msg('请输入负责人电话');
+                        return;
+                    }
+                    if (!phongReg.test(phone)) {
+                        layer.msg('负责人电话格式错误');
+                        return;
+                    }
+                    if (accountNum == '') {
+                        layer.msg('请输入账户');
+                        return;
+                    }
+                    if (password == '') {
+                        layer.msg('请输入密码');
+                        return;
+                    }
+                    if (startTime == '') {
+                        layer.msg('请选择开始使用日期');
+                        return;
+                    }
+                    if (endTime == '') {
+                        layer.msg('请选择结束使用日期');
+                        return;
+                    }
+
+                    if (timeStamp(startTime) >= timeStamp(endTime)) {
+                        layer.msg('到期截止日期需晚于开始使用日期');
+                        return;
+                    }
+
+                    console.log()
+                    $.ajax({
+                        url: port + '/v1/company/update',
+                        type: 'post',
+                        xhrFields: {
+                                withCredentials: true
+                            },
+                        data: {
+                            cId: item[0].cId,
+                            uId: item[0].uId,
+                            cNo: num,
+                            cName: unitName,
+                            cContact: userName,
+                            cPhone: phone,
+                            username: accountNum,
+                            password: password,
+                            startTime: startTime,
+                            endTime: endTime,
+                            remark: remark,
+                            roleId: 43,
+                        },
+                        success: function (e) {
+                            console.log('修改', e)
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                layer.msg('已修改');
+                                layer.close(index);
+                            } else {
+                                layer.msg(e.data);
+                            }
+                        }
+                    })
+
+                },
+                content: '<div class="layui-fluid form-layer layui-form layui-form">' +
+                    '<div class="layui-row">' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>编号:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="num" value="' + item[0]
+                    .company.cNo + '">' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>单位名称:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="unitName" value="' + item[0]
+                    .company.cName + '">' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>负责人:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="userName" value=' + item[0]
+                    .company.cContact + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>负责人电话:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="phone" value=' + item[0]
+                    .company.cPhone + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>账户:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="accountNum" value=' + item[0]
+                    .uUsername + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>密码:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" id="password" value=' + item[0]
+                    .uPassword + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>开始使用日期:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" readonly class="layui-input" id="startTime" value=' +
+                    item[0].company.cStartTime + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md6">' +
+                    '<label class="layui-form-label"><i class="star">*</i>到期截止日期:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<input type="text" autocomplete="off" class="layui-input" readonly id="endTime" value=' +
+                    item[0].company.cEndTime + '>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="layui-col-md12">' +
+                    '<label class="layui-form-label">备注:</label>' +
+                    '<div class="layui-input-block">' +
+                    '<textarea class="layui-textarea"  id="remark">' + item[0].uRemark + '</textarea>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div> '
+
+            });
+        } else {
+            layer.msg('请选择单行数据')
+        }
+
+    }
+
+    // 删除
+    function delBtn() {
+        var item = $("#table").bootstrapTable('getSelections');
+        var delData = []; //要删除的数据
+
+        if (item.length == 0) {
+            layer.msg('请选择要删除的数据');
+        } else {
+            for (var i = 0; i < item.length; i++) {
+                delData[i] = item[i].cId;
+            }
+            console.log('删除', delData);
+
+            layer.open({
+                type: 1,
+                title: '提示',
+                area: ['300px', '200px'],
+                btn: ['确定', '取消'],
+                yes: function (index, layero) {
+                    $.ajax({
+                        url: port + '/v1/company/patchDelete',
+                        type: 'DELETE',
+                        xhrFields: {
+                                withCredentials: true
+                            },
+                        data: {
+                            cIds: delData
+                        },
+                        success: function (e) {
+                            console.log('删除', e);
+                            if (e.status == 200) {
+                                $('#table').bootstrapTable('refresh');
+                                if (e.data.sucCount==0) {
+                                    layer.msg('删除失败'+e.data.failCount+'条，失败原因：单位被占用');
+                                }else{
+                                     layer.msg('删除成功'+e.data.sucCount+'条');
+                                }
+                                layer.close(index);
+                            }
+                        }
+                    })
+                },
+                btnAlign: 'c',
+                content: '<div style="text-align: center;margin-top: 45px;">确定要删除选中的数据?</div>'
+            });
+
+        }
+    }
+
+    // 详情
+    window.operateEvents = {
+        'click .info': function (e, value, row, index) {
+            console.log('详情', row);
+            layer.open({
+                type: 1,
+                title: '详情',
+                area: ['500px', '300px'],
+                btn: ['关闭'],
+                btnAlign: 'c',
+                success: function (layero, index) {
+
+                },
+                yes: function (index, layero) {
+                    layer.close(index);
+                },
+                content: '<div class="layui-fluid form-layer">' +
+                    '<table class="detail-table">' +
+                    '<tr>' +
+                    '<td>编号:</td>' +
+                    '<td>' + isNull(row.company.cNo) + '</td>' +
+                    '<td>单位名称:</td>' +
+                    '<td>' + isNull(row.company.cName) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>负责人:</td>' +
+                    '<td>' + isNull(row.company.cContact) + '</td>' +
+                    '<td>负责人电话:</td>' +
+                    '<td>' + isNull(row.company.cPhone) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>账户号:</td>' +
+                    '<td>' + isNull(row.uUsername) + '</td>' +
+                    '<td>密码:</td>' +
+                    '<td>' + isNull(row.uPassword) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>开始使用日期:</td>' +
+                    '<td>' + isNull(row.company.cStartTime) + '</td>' +
+                    '<td>到期截止日期:</td>' +
+                    '<td>' + isNull(row.company.cEndTime) + '</td>' +
+                    '</tr>' +
+                    '<tr>' +
+                    '<td>微信付款地址:</td>' +
+                    '<td colspan="3">' + isNull(row.company.wxPayUrl) + '</td>' +
+                    '</tr>' +
+                    '<td>备注:</td>' +
+                    '<td colspan="3">' + isNull(row.uRemark) + '</td>' +
+                    '</tr>' +
+                    '</table>' +
+                    '</div> '
+
+            });
+        }
+    };
+
+   
+</script>
+
+</html>
